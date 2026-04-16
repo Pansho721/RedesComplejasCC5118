@@ -67,9 +67,73 @@ def CreateGraph_from_tsv(path, sep='\t', head=10, cols=None, count=False):
     return G
 
 def main():
-    G = CreateGraph_from_tsv("soc-redditHyperlinks-body.tsv", "\t", 10, ["SOURCE_SUBREDDIT","TARGET_SUBREDDIT"], None)
-    nx.draw(G, with_labels=True)
-    plt.show()
+    # Use fixed inputs (do not generalize via command-line)
+    file = "soc-redditHyperlinks-body.tsv"
+    sep = "\t"
+    head = 10
+    cols = ["SOURCE_SUBREDDIT", "TARGET_SUBREDDIT"]
+    max_nodes = 40000
+
+    # Build graph
+    G = CreateGraph_from_tsv(file, sep, head, cols, False)
+
+    if G is None:
+        print("No graph was created (file empty or error).")
+        return
+
+    n_nodes = G.number_of_nodes()
+    n_edges = G.number_of_edges()
+    print(f"Graph loaded: {n_nodes} nodes, {n_edges} edges")
+
+    if n_nodes == 0:
+        print("Graph is empty — nothing to plot.")
+        return
+
+    # If graph is too big to plot, reduce to largest weakly connected component
+    H = G
+    if n_nodes > max_nodes:
+        comps = list(nx.weakly_connected_components(G))
+        if comps:
+            comps.sort(key=len, reverse=True)
+            largest = comps[0]
+            H = G.subgraph(largest).copy()
+            # If the largest component is still too big, downsample to max_nodes for plotting
+            if H.number_of_nodes() > max_nodes:
+                nodes_to_plot = list(largest)[:max_nodes]
+                H = G.subgraph(nodes_to_plot).copy()
+                print(f"Graph larger than {max_nodes} nodes — plotting a {H.number_of_nodes()}-node sample from the largest component")
+            else:
+                print(f"Graph larger than {max_nodes} nodes — plotting largest component with {H.number_of_nodes()} nodes")
+
+    # Draw
+    # larger canvas for better readability
+    plt.figure(figsize=(18, 12))
+    try:
+        pos = nx.spring_layout(H, seed=42)
+    except Exception as e:
+        # spring_layout can require scipy for large/sparse graphs; fallback to a random layout
+        print("spring_layout failed (maybe missing scipy) — falling back to random_layout:", e)
+        pos = nx.random_layout(H, seed=42)
+
+    nx.draw_networkx_nodes(H, pos, node_size=10, node_color="lightblue")
+    nx.draw_networkx_edges(H, pos, arrows=True, arrowstyle='->')
+    nx.draw_networkx_labels(H, pos, font_size=2)
+
+    plt.title(f"Subreddit hyperlink graph ({H.number_of_nodes()} nodes, {H.number_of_edges()} edges)")
+    plt.tight_layout()
+    out_path = "graph.png"
+    try:
+        plt.savefig(out_path, dpi=200)
+        print(f"Saved figure to: {out_path}")
+    except Exception as e:
+        print("Failed to save figure:", e)
+
+    # Show is optional in headless environments; keep it but don't fail if it warns
+    try:
+        plt.show()
+    except Exception:
+        pass
+    
 
 if __name__ == "__main__":
     main()

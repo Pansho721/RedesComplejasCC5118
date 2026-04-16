@@ -1,0 +1,4 @@
+# Requirements for read.py
+# Standard library used: argparse, csv, sys
+networkx>=2.8
+matplotlib>=3.5
