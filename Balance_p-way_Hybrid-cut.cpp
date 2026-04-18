@@ -9,7 +9,7 @@
 #include <utility>
 #include <cstdint>
 
-int threshold = 3;
+int threshold = 100;
 typedef std::string VertexId;
 
 struct Partition {

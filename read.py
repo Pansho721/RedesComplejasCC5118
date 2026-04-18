@@ -5,10 +5,9 @@ import argparse
 import csv
 import sys
 
-def CreateGraph_from_tsv(path, sep='\t', head=10, cols=None, count=False):
-    
-    G = nx.DiGraph()
 
+def CreateGraph_from_file(path, sep='\t', head=10, cols=None, count=False):
+    G = nx.DiGraph()
     with open(path, newline='', encoding='utf-8') as f:
         # try to sniff delimiter if sep is 'auto'
         if sep == 'auto':
@@ -50,11 +49,22 @@ def CreateGraph_from_tsv(path, sep='\t', head=10, cols=None, count=False):
                 total += 1
                 if idxs:
                     row = [row[i] if i < len(row) else '' for i in idxs]
-                    G.add_edge(row[0], row[1])
+                if len(row) >= 2:
+                    src = row[0].strip()
+                    dst = row[1].strip()
+                    if src and dst:
+                        G.add_edge(src, dst)
         else:
-            # if head==0, just count or nothing
+            # if head==0, process all data rows and count
             for row in reader:
                 total += 1
+                if idxs:
+                    row = [row[i] if i < len(row) else '' for i in idxs]
+                if len(row) >= 2:
+                    src = row[0].strip()
+                    dst = row[1].strip()
+                    if src and dst:
+                        G.add_edge(src, dst)
 
         if count:
             print("Total rows (excluding header):", total)
@@ -85,35 +95,58 @@ def write_partition_graphs(num_partitions=8, file_prefix="partition"):
         print(f"Saved partition graph to: {out_path} ({partitions[i].number_of_edges()} edges)")
     return partitions
 
-def main():
+
+
+def draw_and_save_graph(G, out_path, title):
+    if G.number_of_nodes() == 0:
+        print(f"Graph is empty; skipping plot for {out_path}.")
+        return
+
+    plt.figure(figsize=(80, 80))
+    try:
+        # spring layout can be slow for large graphs
+        if G.number_of_nodes() <= 2500:
+            pos = nx.spring_layout(G, seed=42)
+        else:
+            pos = nx.random_layout(G, seed=42)
+    except Exception as e:
+        print("layout failed; falling back to random_layout:", e)
+        pos = nx.random_layout(G, seed=42)
+
+    nx.draw_networkx_nodes(G, pos, node_size=8, node_color="#2f6db3", alpha=0.85)
+    nx.draw_networkx_edges(G, pos, arrows=False, alpha=0.15, width=0.4)
+
+    plt.title(title)
+    plt.axis("off")
+    plt.tight_layout()
+    try:
+        plt.savefig(out_path, dpi=10, bbox_inches="tight")
+        print(f"Saved figure to: {out_path}")
+    except Exception as e:
+        print("Failed to save figure:", e)
+    plt.close()
+
+
+def plot_partitions():
     partition = write_partition_graphs(num_partitions=8, file_prefix="partition")
     for i, p in enumerate(partition):
-        if p.number_of_nodes() == 0:
-            print(f"Partition {i} is empty; skipping plot.")
-            continue
-
-        # Draw
-        plt.figure(figsize=(100, 100))
-        try:
-            pos = nx.spring_layout(p, seed=42)
-        except Exception as e:
-            # spring_layout can require scipy for large/sparse graphs; fallback to a random layout
-            print("spring_layout failed (maybe missing scipy) — falling back to random_layout:", e)
-            pos = nx.random_layout(p, seed=42)
-
-        nx.draw_networkx_nodes(p, pos, node_size=5, node_color="lightblue")
-        nx.draw_networkx_edges(p, pos, arrows=True, arrowstyle='->', alpha=0.5)
-
-        plt.title(f"Subreddit hyperlink graph ({p.number_of_nodes()} nodes, {p.number_of_edges()} edges)")
-        plt.tight_layout()
         out_path = f"graph_{i}.png"
-        try:
-            plt.savefig(out_path, dpi=200)
-            print(f"Saved figure to: {out_path}")
-        except Exception as e:
-            print("Failed to save figure:", e)
-        plt.close()
-    
+        title = f"Partition {i} ({p.number_of_nodes()} nodes, {p.number_of_edges()} edges)"
+        draw_and_save_graph(p, out_path, title)
+
+def plot_graph():
+    G = load_graph_from_edgelist("graph.edgelist", sep='\t')
+    print(f"Graph loaded with {G.number_of_nodes()} nodes and {G.number_of_edges()} edges.")
+    title = f"Full graph ({G.number_of_nodes()} nodes, {G.number_of_edges()} edges)"
+    draw_and_save_graph(G, "graph.png", title)
+
+
+def plot_all():
+    plot_graph()
+    plot_partitions()
+
+def main():
+    plot_graph()
 
 if __name__ == "__main__":
     main()
