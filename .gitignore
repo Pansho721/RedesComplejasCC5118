@@ -5,6 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
+*.out
 
 # Distribution / packaging
 .Python
@@ -210,4 +211,7 @@ __marimo__/
 # Dataset files
 *.csv
 *.tsv
+graph_*.png
+graph.edgelist
+partition*.graph
 

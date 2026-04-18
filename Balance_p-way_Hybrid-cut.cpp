@@ -58,7 +58,7 @@ void printPartition(Partition p){
 
 int main(int argc, char **argv) {
     if (argc < 3) {
-        fprintf(stderr, "usage: [executable] [input]\n");
+        fprintf(stderr, "usage: [executable] [input_tsv] [num_partitions]\n");
         exit(-1);
     }
 
@@ -71,13 +71,29 @@ int main(int argc, char **argv) {
 
         Pts.emplace_back(i, setVertex, setEdge, degree);
     }
-    FILE *fin = fopen(argv[1], "rb");
+    std::ifstream fin(argv[1]);
+    if (!fin) {
+        std::cerr << "Error: cannot open input file.\n";
+        return -1;
+    }
+
     int e = 0;
-    while (true) {
-        VertexId src, dst;
-        if (fread(&src, sizeof(src), 1, fin) == 0) break;
-        if (fread(&dst, sizeof(dst), 1, fin) == 0) break;
-        //printf("edge: (%d %d)\n", src, dst);
+    std::string line;
+    while (std::getline(fin, line)) {
+        if (line.empty()) {
+            continue;
+        }
+
+        std::size_t tabPos = line.find('\t');
+        if (tabPos == std::string::npos) {
+            continue;
+        }
+
+        VertexId src = line.substr(0, tabPos);
+        VertexId dst = line.substr(tabPos + 1);
+        if (src.empty() || dst.empty()) {
+            continue;
+        }
 
         auto edge = std::make_pair(src,dst);
         int pt = master(dst,p);
@@ -92,33 +108,28 @@ int main(int argc, char **argv) {
             Pts[pt].setVertex.insert(src);
             Pts[pt].setVertex.insert(dst);
         }
+        e++;
     }
-    fclose(fin);
+    fin.close();
 
     for (int i=0; i<p; i++){
         printPartition(Pts[i]);
     }
 
-    std::ofstream fout("partitions_hybrid_output.txt");
-    if (!fout) {
-        std::cerr << "Error: cannot open output file.\n";
-        return -1;
-    }
     for (int i = 0; i < p; i++) {
-        fout << "Partition " << i << "\n";
-        fout << "Vertex:\n";
-        for (const auto &v : Pts[i].setVertex) {
-            fout << v  << "\n";
+        std::string fileName = "partition" + std::to_string(i) + ".graph";
+        std::ofstream fout(fileName);
+        if (!fout) {
+            std::cerr << "Error: cannot open output file: " << fileName << "\n";
+            return -1;
         }
-        fout << "Edges:\n";
+
         for (const auto &e : Pts[i].setEdge){
-            fout << e.first << ' ' << e.second << '\n';
+            fout << e.first << '\t' << e.second << '\n';
         }
 
-        fout << "\n"; // blank line between partitions
+        fout.close();
     }
-
-    fout.close();
     
     return 0;
 }
