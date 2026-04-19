@@ -1,7 +1,5 @@
 import networkx as nx
 import matplotlib.pyplot as plt
-
-import argparse
 import csv
 import sys
 
@@ -72,6 +70,30 @@ def CreateGraph_from_file(path, sep='\t', head=10, cols=None, count=False):
     return G
 
 
+def create_reddit_edgelist_from_file(input_path, output_path="graph.edgelist", sep='\t'):
+    G = CreateGraph_from_file(
+        input_path,
+        sep=sep,
+        head=0,
+        cols=["SOURCE_SUBREDDIT", "TARGET_SUBREDDIT"],
+        count=True,
+    )
+    if G is None:
+        print("No graph generated from input file.", file=sys.stderr)
+        return None
+
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f, delimiter='\t')
+        for src, dst in G.edges():
+            writer.writerow([src, dst])
+
+    print(
+        f"Saved edgelist to: {output_path} "
+        f"({G.number_of_nodes()} nodes, {G.number_of_edges()} edges)"
+    )
+    return G
+
+
 def load_graph_from_edgelist(path, sep='\t'):
     G = nx.DiGraph()
     with open(path, newline='', encoding='utf-8') as f:
@@ -87,22 +109,52 @@ def load_graph_from_edgelist(path, sep='\t'):
     return G
 
 
-def write_partition_graphs(num_partitions=8, file_prefix="partition"):
+def load_node_set(path):
+    nodes = set()
+    try:
+        with open(path, encoding='utf-8') as f:
+            for line in f:
+                v = line.strip()
+                if v:
+                    nodes.add(v)
+    except FileNotFoundError:
+        pass
+    return nodes
+
+
+def write_partition_graphs(num_partitions=8, file_prefix="partition/"):
     partitions = []
     for i in range(num_partitions):
         out_path = f"{file_prefix}{i}.graph"
-        partitions.append(load_graph_from_edgelist(out_path, sep='\t'))
-        print(f"Saved partition graph to: {out_path} ({partitions[i].number_of_edges()} edges)")
+        master_nodes = load_node_set(f"partitionMaster/{i}_master.graph")
+        mirror_nodes = load_node_set(f"partitionMirror/{i}_mirror.graph")
+        G = load_graph_from_edgelist(out_path, sep='\t')
+        G.graph['master_nodes'] = master_nodes
+        G.graph['mirror_nodes'] = mirror_nodes
+        partitions.append(G)
+        print(f"Loaded partition from: {out_path} ({G.number_of_edges()} edges, {len(master_nodes)} masters, {len(mirror_nodes)} mirrors)")
     return partitions
 
 
 
-def draw_and_save_graph(G, out_path, title):
+def draw_and_save_graph(G, out_path, title, node_size=8, fig_size=(20, 20), dpi=50):
     if G.number_of_nodes() == 0:
         print(f"Graph is empty; skipping plot for {out_path}.")
         return
 
-    plt.figure(figsize=(80, 80))
+    master_nodes = G.graph.get('master_nodes', set())
+    mirror_nodes = G.graph.get('mirror_nodes', set())
+
+    node_colors = []
+    for n in G.nodes():
+        if n in master_nodes:
+            node_colors.append("#d9534f")  # red
+        elif n in mirror_nodes:
+            node_colors.append("#2f6db3")  # blue
+        else:
+            node_colors.append("#aaaaaa")  # grey fallback
+
+    plt.figure(figsize=fig_size)
     try:
         # spring layout can be slow for large graphs
         if G.number_of_nodes() <= 2500:
@@ -113,14 +165,14 @@ def draw_and_save_graph(G, out_path, title):
         print("layout failed; falling back to random_layout:", e)
         pos = nx.random_layout(G, seed=42)
 
-    nx.draw_networkx_nodes(G, pos, node_size=8, node_color="#2f6db3", alpha=0.85)
+    nx.draw_networkx_nodes(G, pos, node_size=node_size, node_color=node_colors, alpha=0.85)
     nx.draw_networkx_edges(G, pos, arrows=False, alpha=0.15, width=0.4)
 
     plt.title(title)
     plt.axis("off")
     plt.tight_layout()
     try:
-        plt.savefig(out_path, dpi=10, bbox_inches="tight")
+        plt.savefig(out_path, dpi=dpi, bbox_inches="tight")
         print(f"Saved figure to: {out_path}")
     except Exception as e:
         print("Failed to save figure:", e)
@@ -128,25 +180,18 @@ def draw_and_save_graph(G, out_path, title):
 
 
 def plot_partitions():
-    partition = write_partition_graphs(num_partitions=8, file_prefix="partition")
+    partition = write_partition_graphs(num_partitions=9, file_prefix="partition/")
     for i, p in enumerate(partition):
         out_path = f"graph_{i}.png"
-        title = f"Partition {i} ({p.number_of_nodes()} nodes, {p.number_of_edges()} edges)"
-        draw_and_save_graph(p, out_path, title)
+        draw_and_save_graph(p, out_path,"", node_size=10, fig_size=(20, 20), dpi=100)
 
 def plot_graph():
     G = load_graph_from_edgelist("graph.edgelist", sep='\t')
     print(f"Graph loaded with {G.number_of_nodes()} nodes and {G.number_of_edges()} edges.")
     title = f"Full graph ({G.number_of_nodes()} nodes, {G.number_of_edges()} edges)"
-    draw_and_save_graph(G, "graph.png", title)
+    draw_and_save_graph(G, "graph.png", title, node_size=4, fig_size=(80, 80), dpi=30)
 
 
 def plot_all():
     plot_graph()
     plot_partitions()
-
-def main():
-    plot_graph()
-
-if __name__ == "__main__":
-    main()

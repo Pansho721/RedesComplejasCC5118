@@ -214,4 +214,9 @@ __marimo__/
 graph_*.png
 graph.edgelist
 partition*.graph
-
+partition/
+partition/*
+partitionMaster/
+partitionMaster/*
+partitionMirror/
+partitionMirror/*

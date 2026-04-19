@@ -6,6 +6,8 @@
 #include <vector>
 #include <set>
 #include <utility>
+#include <cstdint>
+#include <sys/stat.h>
 
 
 typedef std::string VertexId;
@@ -69,16 +71,16 @@ int main(int argc, char **argv) {
     }
 
 
-    FILE *fin = fopen(argv[1], "rb");
+    std::ifstream fin(argv[1]);
+    if (!fin) {
+        std::cerr << "Error: cannot open input file.\n";
+        return -1;
+    }
     int e = 1;
-    while (true) {
-        VertexId src, dst;
-        if (fread(&src, sizeof(src), 1, fin) == 0) break;
-        if (fread(&dst, sizeof(dst), 1, fin) == 0) break;
-        //printf("edge: (%d %d)\n", src, dst);
-
+    VertexId src, dst;
+    while (fin >> src >> dst) {
         auto edge = std::make_pair(src,dst);
-        int whichP = master(e,p);
+        int whichP = master(std::to_string(e),p);
         int msrc = master(src,p);
         int mdst = master(dst,p);
         std::cout << whichP << ' ' << src << ' ' << dst << '\n';
@@ -94,38 +96,40 @@ int main(int argc, char **argv) {
         }
         e++;
     }
-    fclose(fin);
 
     for (int i=0; i<p; i++){
         printPartition(Pts[i]);
     }
 
 
-    std::ofstream fout("partitions_vertex_output.txt");
-    if (!fout) {
-        std::cerr << "Error: cannot open output file.\n";
-        return -1;
-    }
+    
+    mkdir("partition", 0755);
+    mkdir("partitionMaster", 0755);
+    mkdir("partitionMirror", 0755);
+
     for (int i = 0; i < p; i++) {
-        fout << "Partition " << i << "\n";
-        fout << "Master vertex\n";
+        std::string partitionFileName = "partition/" + std::to_string(i) + ".graph";
+        std::string masterFileName = "partitionMaster/" + std::to_string(i) + "_master.graph";
+        std::string mirrorFileName = "partitionMirror/" + std::to_string(i) + "_mirror.graph";
+        std::ofstream pout(partitionFileName);
+        std::ofstream maout(masterFileName);
+        std::ofstream miout(mirrorFileName);
+
+        if (!pout || !maout || !miout) {
+            std::cerr << "Error: cannot open output file.\n";
+            return -1;
+        }
+
         for (const auto &v : Pts[i].setMaster) {
-            fout << v  << "\n";
+            maout << v  << "\n";
         }
-        fout << "Mirror vertex\n";
         for (const auto &v : Pts[i].setVertex) {
-            fout << v  << "\n";
+            miout << v  << "\n";
         }
-        fout << "Edges: \n";
         for (const auto &e : Pts[i].setEdge) {
-            fout << e.first << ' ' << e.second << "\n";
+            pout << e.first << '\t' << e.second << "\n";
         }
-
-        fout << "\n"; // blank line between partitions
     }
-
-    fout.close();
-
 
     return 0;
 }
