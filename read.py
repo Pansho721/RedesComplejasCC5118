@@ -4,8 +4,17 @@ import csv
 import sys
 
 
-def CreateGraph_from_file(path, sep='\t', head=10, cols=None, count=False):
-    G = nx.DiGraph()
+def CreateGraph_from_file(path, sep='\t', head=10, cols=None, count=False, kind='DiGraph'):
+    match kind:
+        case 'DiGraph':
+            G = nx.DiGraph()
+        case 'MultiDiGraph':
+            G = nx.MultiDiGraph()
+        case _:
+            print(f"Unsupported graph type: {kind}", file=sys.stderr)
+            return None
+
+
     with open(path, newline='', encoding='utf-8') as f:
         # try to sniff delimiter if sep is 'auto'
         if sep == 'auto':
