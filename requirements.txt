@@ -2,3 +2,4 @@
 # Standard library used: argparse, csv, sys
 networkx>=2.8
 matplotlib>=3.5
+joblib>=1.5
