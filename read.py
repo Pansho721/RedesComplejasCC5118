@@ -103,6 +103,88 @@ def create_reddit_edgelist_from_file(input_path, output_path="graph.edgelist", s
     return G
 
 
+def iter_reddit_publishes(path, sep='\t', cols=("SOURCE_SUBREDDIT", "TARGET_SUBREDDIT", "LINK_SENTIMENT"), skip_header=True):
+    """Yield (src, dst, link_sentiment) for every publish in the source file.
+
+    This function does NOT aggregate or simplify duplicate edges: if the
+    same (src,dst) appears multiple times with different LINK_SENTIMENT
+    values, each appearance is yielded separately.
+
+    Args:
+        path: input file path (CSV/TSV)
+        sep: delimiter or 'auto' to sniff
+        cols: tuple/list of column names (src, dst, sentiment)
+        skip_header: if True, treat the first row as header and use it to
+                     locate columns; if False, use positional columns
+
+    Yields:
+        (src:str, dst:str, link_sentiment: str|float|None)
+    """
+    with open(path, newline='', encoding='utf-8') as f:
+        # delimiter sniffing consistent with CreateGraph_from_file
+        if sep == 'auto':
+            sample = f.read(4096)
+            f.seek(0)
+            try:
+                dialect = csv.Sniffer().sniff(sample, delimiters='\t,; ')
+                sep_used = dialect.delimiter
+            except Exception:
+                sep_used = '\t'
+        else:
+            sep_used = sep
+
+        reader = csv.reader(f, delimiter=sep_used)
+        # locate columns
+        header = None
+        idxs = None
+        if skip_header:
+            try:
+                header = next(reader)
+            except StopIteration:
+                return
+            if cols:
+                idxs = []
+                for c in cols:
+                    try:
+                        idxs.append(header.index(c))
+                    except ValueError:
+                        # column not found: fall back to positional interpretation
+                        idxs = None
+                        break
+        # iterate rows and yield triples
+        for row in reader:
+            if not row:
+                continue
+            if idxs:
+                # ensure row has enough columns
+                row_sel = [row[i] if i < len(row) else '' for i in idxs]
+            else:
+                # use positional: first two (and third if present)
+                row_sel = row[:3]
+
+            if len(row_sel) < 2:
+                continue
+            src = row_sel[0].strip()
+            dst = row_sel[1].strip()
+            if not src or not dst:
+                continue
+
+            link_sent = None
+            if len(row_sel) >= 3:
+                raw = row_sel[2].strip()
+                if raw != '':
+                    # try to parse numeric sentiment/weight
+                    try:
+                        if '.' in raw:
+                            link_sent = float(raw)
+                        else:
+                            link_sent = int(raw)
+                    except Exception:
+                        link_sent = raw
+
+            yield (src, dst, link_sent)
+
+
 def load_graph_from_edgelist(path, sep='\t'):
     G = nx.DiGraph()
     with open(path, newline='', encoding='utf-8') as f:
