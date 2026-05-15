@@ -1,5 +1,3 @@
-import tempfile
-import subprocess
 import collections
 import csv
 import sys
@@ -44,6 +42,7 @@ def tsv2file(input, output, sep='\t', head=10, cols=None, count=False):
             print("Header:", header if not idxs else [header[i] for i in idxs])
 
             total = 0
+            out_rows = []
             
             # if head==0, process all data rows and count
             for row in reader:
@@ -55,9 +54,14 @@ def tsv2file(input, output, sep='\t', head=10, cols=None, count=False):
                         dst = row[1].strip()
                         w = row[2].strip() if len(row) >= 3 else ''
                         if src and dst and w:
-                            writer.writerow([src, dst, w])
+                            out_rows.append([src, dst, w])
                         elif src and dst:
-                            writer.writerow([src, dst])
+                            out_rows.append([src, dst])
+
+            # Sort output rows deterministically by source, target, and optional weight.
+            out_rows.sort(key=lambda r: (r[0], r[1], r[2] if len(r) >= 3 else ''))
+            writer.writerows(out_rows)
+
             if count:
                 print("Total rows (excluding header):", total)
 
@@ -85,83 +89,32 @@ def directedWeightedGraphFile(input_path, output_path="graphs/graph.edgelist", s
 
 
 def map_reduce_count_edges(input_path, output_path="aggregated.edgelist", sep='\t', use_external_sort=True):
-    """Aggregate (src,dst,sentiment) triples into counts.
+    """Aggregate (src,dst,sentiment) triples into counts using memory.
 
     Produces an output file where each line is:
         src <tab> dst <tab> sentiment <tab> count
 
-    If use_external_sort is True, uses the system `sort` to sort the
-    input then collapses consecutive identical keys in a streaming pass
-    (constant memory). Otherwise falls back to an in-memory Counter.
+    The use_external_sort argument is kept for compatibility but ignored.
     """
-    if use_external_sort:
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.sorted', mode='w', encoding='utf-8')
-        tmp_name = tmp.name
-        tmp.close()
-        try:
-            cmd = [
-                'sort',
-                '-t', '\t',
-                '-k1,1',
-                '-k2,2',
-                '-k3,3',
-                input_path,
-            ]
-            with open(tmp_name, 'w', encoding='utf-8') as outf:
-                subprocess.run(cmd, stdout=outf, check=True)
+    counter = collections.Counter()
+    with open(input_path, 'r', encoding='utf-8') as inf:
+        for line in inf:
+            line = line.rstrip('\n')
+            if not line:
+                continue
+            parts = line.split(sep)
+            if len(parts) >= 3:
+                src, dst, sent = parts[0].strip(), parts[1].strip(), parts[2].strip()
+            elif len(parts) == 2:
+                src, dst, sent = parts[0].strip(), parts[1].strip(), ''
+            else:
+                continue
+            counter[(src, dst, sent)] += 1
 
-            with open(tmp_name, 'r', encoding='utf-8') as inf, open(output_path, 'w', newline='', encoding='utf-8') as outf:
-                writer = csv.writer(outf, delimiter=sep)
-                prev = None
-                count = 0
-                for line in inf:
-                    line = line.rstrip('\n')
-                    if not line:
-                        continue
-                    parts = line.split(sep)
-                    if len(parts) >= 3:
-                        src, dst, sent = parts[0].strip(), parts[1].strip(), parts[2].strip()
-                    elif len(parts) == 2:
-                        src, dst, sent = parts[0].strip(), parts[1].strip(), ''
-                    else:
-                        continue
-                    key = (src, dst, sent)
-                    if prev is None:
-                        prev = key
-                        count = 1
-                    elif key == prev:
-                        count += 1
-                    else:
-                        writer.writerow([prev[0], prev[1], prev[2], count])
-                        prev = key
-                        count = 1
-                if prev is not None:
-                    writer.writerow([prev[0], prev[1], prev[2], count])
-        finally:
-            try:
-                os.remove(tmp_name)
-            except Exception:
-                pass
-    else:
-        counter = collections.Counter()
-        with open(input_path, 'r', encoding='utf-8') as inf:
-            for line in inf:
-                line = line.rstrip('\n')
-                if not line:
-                    continue
-                parts = line.split(sep)
-                if len(parts) >= 3:
-                    src, dst, sent = parts[0].strip(), parts[1].strip(), parts[2].strip()
-                elif len(parts) == 2:
-                    src, dst, sent = parts[0].strip(), parts[1].strip(), ''
-                else:
-                    continue
-                counter[(src, dst, sent)] += 1
-
-        with open(output_path, 'w', newline='', encoding='utf-8') as outf:
-            writer = csv.writer(outf, delimiter=sep)
-            for (src, dst, sent), cnt in counter.items():
-                writer.writerow([src, dst, sent, cnt])
+    with open(output_path, 'w', newline='', encoding='utf-8') as outf:
+        writer = csv.writer(outf, delimiter=sep)
+        for (src, dst, sent), cnt in counter.items():
+            writer.writerow([src, dst, sent, cnt])
 
     return output_path
 
@@ -186,5 +139,5 @@ if __name__ == "__main__":
     input_file = "soc-redditHyperlinks-body.tsv"
     directedSimpleGraphFile(input_file, "graphs/reddit.edgelist")
     directedWeightedGraphFile(input_file, "graphs/reddit_weighted.edgelist")
-    map_reduce_count_edges("graphs/reddit_weighted.edgelist", "graphs/reddit_weighted_aggregated.edgelist", sep='\t', use_external_sort=True)
+    map_reduce_count_edges("graphs/reddit_weighted.edgelist", "graphs/reddit_weighted_aggregated.edgelist", sep='\t')
     filterSentiment("graphs/reddit_weighted_aggregated.edgelist", "graphs/reddit_positive.edgelist", sep='\t')
