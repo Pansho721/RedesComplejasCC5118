@@ -1,14 +1,10 @@
-import plot
+import os
+
+from plot import load_graph_from_edgelist
 import networkx as nx
 
-from joblib import Parallel, delayed
 from multiprocessing import Pool
-import time
 import itertools
-
-import csv
-import json
-
 
 
 def chunks(l, n):
@@ -58,33 +54,26 @@ def compute_centrality(graph, kind='degree'):
             print(f"Unsupported centrality type: {kind}")
             return None
 
-
 def get_full_centrality(graph):
     """Compute all centrality measures and return as dict of dicts."""
-    centrality = {}
     kinds = ['degree', 'betweenness', 'closeness']
-    
-    results = Parallel(n_jobs=-1)(  # -1 = use all cores
-        delayed(compute_centrality)(graph, kind) 
-        for kind in kinds
-    )
+    results = [compute_centrality(graph, kind) for kind in kinds]
+    return dict(zip(kinds, results))
 
-    centrality = dict(zip(kinds, results))
-    return centrality
+def save_centrality(dict, output_name):
+    for kind in dict:
+        out_path = f"{output_name}_{kind}.centrality"
+        out_dir = os.path.dirname(out_path)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
 
-
-def save_full_centrality(graph, out_path):
-    """Compute all centrality measures and save to JSON."""
-    centrality = get_full_centrality(graph)
-
-    #full_centrality = centrality['degree'].join(centrality['betweenness'], centrality['closeness'], centrality['eigenvector'])
-
-    #with open(out_path, 'w', encoding='utf-8') as f:
-    #    json.dump(full_centrality, f, ensure_ascii=False, indent=4)
-
-
+        with open(out_path, 'w', encoding='utf-8') as f:
+            print(kind, "centrality saved to:", out_path)
+            for node, centrality in sorted(dict[kind].items(), key=lambda item: item[1], reverse=True):
+                f.write(f"{node}\t{centrality}\n")
+                
 if __name__ == "__main__":
     # Example usage
-    graph = plot.CreateGraph_from_file('soc-redditHyperlinks-body.tsv', head=1, cols=["SOURCE_SUBREDDIT", "TARGET_SUBREDDIT"], count=False, kind='MultiDiGraph')
-    #save_full_centrality(graph, 'centrality_full.json')
-    get_full_centrality(graph)
+    graph = load_graph_from_edgelist("graphs/reddit_negative.edgelist", kind='DiGraph')
+    centrality = get_full_centrality(graph)
+    save_centrality(centrality, "centrality/reddit_negative_centrality")

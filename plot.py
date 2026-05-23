@@ -4,8 +4,18 @@ import csv
 import os
 import sys
 
-def load_graph_from_edgelist(path, sep='\t'):
-    G = nx.DiGraph()
+def load_graph_from_edgelist(path, kind='DiGraph', sep='\t'):
+    if kind == 'DiGraph':
+        G = nx.DiGraph()
+    elif kind == 'Graph':
+        G = nx.Graph()
+    elif kind == 'MultiDiGraph':
+        G = nx.MultiDiGraph()
+    elif kind == 'MultiGraph':
+        G = nx.MultiGraph()
+    else:
+        raise ValueError(f"Unsupported graph type: {kind}")
+
     with open(path, newline='', encoding='utf-8') as f:
         reader = csv.reader(f, delimiter=sep)
         for row in reader:
@@ -38,7 +48,7 @@ def write_partition_graphs(num_partitions=8, file_prefix="partition/"):
         out_path = f"{file_prefix}{i}.graph"
         master_nodes = load_node_set(f"partitionMaster/{i}_master.graph")
         mirror_nodes = load_node_set(f"partitionMirror/{i}_mirror.graph")
-        G = load_graph_from_edgelist(out_path, sep='\t')
+        G = load_graph_from_edgelist(out_path, kind='DiGraph', sep='\t')
         G.graph['master_nodes'] = master_nodes
         G.graph['mirror_nodes'] = mirror_nodes
         partitions.append(G)
