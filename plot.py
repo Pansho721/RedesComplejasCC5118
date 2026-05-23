@@ -1,6 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import csv
+import os
 import sys
 
 def load_graph_from_edgelist(path, sep='\t'):
@@ -81,6 +82,9 @@ def draw_and_save_graph(G, out_path, title, node_size=8, fig_size=(20, 20), dpi=
     plt.axis("off")
     plt.tight_layout()
     try:
+        out_dir = os.path.dirname(out_path)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
         plt.savefig(out_path, dpi=dpi, bbox_inches="tight")
         print(f"Saved figure to: {out_path}")
     except Exception as e:
