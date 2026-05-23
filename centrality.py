@@ -1,4 +1,4 @@
-import read
+import plot
 import networkx as nx
 
 from joblib import Parallel, delayed
@@ -85,6 +85,6 @@ def save_full_centrality(graph, out_path):
 
 if __name__ == "__main__":
     # Example usage
-    graph = read.CreateGraph_from_file('soc-redditHyperlinks-body.tsv', head=1, cols=["SOURCE_SUBREDDIT", "TARGET_SUBREDDIT"], count=False, kind='MultiDiGraph')
+    graph = plot.CreateGraph_from_file('soc-redditHyperlinks-body.tsv', head=1, cols=["SOURCE_SUBREDDIT", "TARGET_SUBREDDIT"], count=False, kind='MultiDiGraph')
     #save_full_centrality(graph, 'centrality_full.json')
     get_full_centrality(graph)
