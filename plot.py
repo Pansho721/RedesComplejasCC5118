@@ -102,7 +102,7 @@ def plot_graph(path="graphs/reddit.edgelist", title="Full graph", size=(80, 80),
     G = load_graph_from_edgelist(path, sep=sep)
     print(f"Graph loaded with {G.number_of_nodes()} nodes and {G.number_of_edges()} edges.")
     title = f"{title}: ({G.number_of_nodes()} nodes, {G.number_of_edges()} edges)"
-    draw_and_save_graph(G, "img/graph.png", title, node_size=4, fig_size=size, dpi=dpi)
+    draw_and_save_graph(G, "img/graph.png", title, node_size=1, fig_size=size, dpi=dpi)
 
 if __name__ == "__main__":
-    plot_graph("graphs/reddit_negative.edgelist","Grafo Negativo", size=(40, 40), dpi=50)
+    plot_graph("graphs/reddit_negative.edgelist","Grafo Negativo", size=(10, 10), dpi=100)
