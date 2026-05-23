@@ -1,5 +1,6 @@
 import collections
 import csv
+from importlib import simple
 import sys
 import os
 
@@ -89,16 +90,9 @@ def directedWeightedGraphFile(input_path, output_path="graphs/graph.edgelist", s
 
 
 def map_reduce_count_edges(input_path, output_path="aggregated.edgelist", sep='\t', use_external_sort=True):
-    """Aggregate (src,dst,sentiment) triples into counts using memory.
-
-    Produces an output file where each line is:
-        src <tab> dst <tab> sentiment <tab> count
-
-    The use_external_sort argument is kept for compatibility but ignored.
-    """
     counter = collections.Counter()
-    with open(input_path, 'r', encoding='utf-8') as inf:
-        for line in inf:
+    with open(input_path, 'r', encoding='utf-8') as file:
+        for line in file:
             line = line.rstrip('\n')
             if not line:
                 continue
@@ -106,7 +100,7 @@ def map_reduce_count_edges(input_path, output_path="aggregated.edgelist", sep='\
             if len(parts) >= 3:
                 src, dst, sent = parts[0].strip(), parts[1].strip(), parts[2].strip()
             elif len(parts) == 2:
-                src, dst, sent = parts[0].strip(), parts[1].strip(), ''
+                src, dst, sent = parts[0].strip(), parts[1].strip(), 0
             else:
                 continue
             counter[(src, dst, sent)] += 1
@@ -119,7 +113,10 @@ def map_reduce_count_edges(input_path, output_path="aggregated.edgelist", sep='\
     return output_path
 
 def filterSentiment(input_path="graphs/reddit_weighted_aggregated.edgelist", outputPos="graphs/reddit_positive.edgelist", outputNeg="graphs/reddit_negative.edgelist", sep='\t'):
-    with open(input_path, 'r', encoding='utf-8') as inf, open(outputPos, 'w', newline='', encoding='utf-8') as outfPos, open(outputNeg, 'w', newline='', encoding='utf-8') as outfNeg:
+    with open(input_path, 'r', encoding='utf-8') as inf, \
+         open(outputPos,  'w', newline='', encoding='utf-8') as outfPos, \
+         open(outputNeg,  'w', newline='', encoding='utf-8') as outfNeg:
+        
         reader = csv.reader(inf, delimiter=sep)
         writerPos = csv.writer(outfPos, delimiter=sep)
         writerNeg = csv.writer(outfNeg, delimiter=sep)
@@ -129,15 +126,59 @@ def filterSentiment(input_path="graphs/reddit_weighted_aggregated.edgelist", out
                 try:
                     count = int(count)
                 except ValueError:
-                    continue
+                    count = 0
                 if sent == '1' and count > 0:
                     writerPos.writerow([src, dst, count])
                 elif sent == '-1' and count > 0:
                     writerNeg.writerow([src, dst, count])
 
+
+# [src, dst, pos_count, neg_count, total_count, pos_proportion, neg_proportion]
+def makeSummary(pos_file="graphs/reddit_positive.edgelist", neg_file="graphs/reddit_negative.edgelist", summary_file="graphs/reddit_summary.txt", sep='\t'):
+    summary = {}
+    with open(pos_file, 'r', encoding='utf-8') as f:
+        reader = csv.reader(f, delimiter=sep)
+        for row in reader:
+            if len(row) >= 3:
+                src, dst, count = row[0].strip(), row[1].strip(), row[2].strip()
+                try:
+                    count = int(count)
+                except ValueError:
+                    count = 0
+                summary[(src, dst)] = [0, count]  # [neg_count, pos_count]
+    with open(neg_file, 'r', encoding='utf-8') as f:
+        reader = csv.reader(f, delimiter=sep)
+        for row in reader:
+            if len(row) >= 3:
+                src, dst, count = row[0].strip(), row[1].strip(), row[2].strip()
+                try:
+                    count = int(count)
+                except ValueError:
+                    count = 0
+                if (src, dst) in summary:
+                    summary[(src, dst)][0] = count  # update neg_count
+                else:
+                    summary[(src, dst)] = [count, 0]  # [neg_count, pos_count]
+    with open(summary_file, 'w', encoding='utf-8') as outf:
+        writer = csv.writer(outf, delimiter=sep)
+        for (src, dst), (neg_count, pos_count) in summary.items():
+            sum = neg_count + pos_count
+            if sum < 0:
+                continue
+            writer.writerow([src, dst, neg_count, pos_count, sum, pos_count/sum, neg_count/sum])
+
+
 if __name__ == "__main__":
     input_file = "soc-redditHyperlinks-body.tsv"
-    directedSimpleGraphFile(input_file, "graphs/reddit.edgelist")
-    directedWeightedGraphFile(input_file, "graphs/reddit_weighted.edgelist")
-    map_reduce_count_edges("graphs/reddit_weighted.edgelist", "graphs/reddit_weighted_aggregated.edgelist", sep='\t')
-    filterSentiment("graphs/reddit_weighted_aggregated.edgelist", "graphs/reddit_positive.edgelist", sep='\t')
+    simple_file = "graphs/reddit.edgelist"
+    weight_file = "graphs/reddit_weighted.edgelist"
+    aggregated_file = "graphs/reddit_weighted_aggregated.edgelist"
+    possitive_file = "graphs/reddit_positive.edgelist"
+    negative_file = "graphs/reddit_negative.edgelist"
+    summary_file = "graphs/reddit_summary.txt"
+
+    directedSimpleGraphFile(input_file, simple_file)
+    directedWeightedGraphFile(input_file, weight_file)
+    map_reduce_count_edges(weight_file, aggregated_file, sep='\t')
+    filterSentiment(aggregated_file, possitive_file, negative_file, sep='\t')
+    makeSummary(possitive_file, negative_file, summary_file, sep='\t')

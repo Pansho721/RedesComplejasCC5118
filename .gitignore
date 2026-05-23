@@ -225,3 +225,4 @@ partitionMirror/*
 *.png
 
 graphs/*
+img/*
