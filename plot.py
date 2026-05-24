@@ -21,11 +21,19 @@ def load_graph_from_edgelist(path, kind='DiGraph', sep='\t'):
         for row in reader:
             if len(row) < 2:
                 continue
-            src = row[0].strip()
-            dst = row[1].strip()
-            if not src or not dst:
-                continue
-            G.add_edge(src, dst)
+            if len(row) >= 4:
+                src, dst, sent, value = row[0].strip(), row[1].strip(), row[2].strip(), row[3].strip()
+                try:
+                    value = int(value)
+                except ValueError:
+                    value = 1
+                G.add_edge(src, dst, weight=value*sent)
+            else:
+                src = row[0].strip()
+                dst = row[1].strip()
+                if not src or not dst:
+                    continue
+                G.add_edge(src, dst)
     return G
 
 
