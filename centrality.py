@@ -52,8 +52,8 @@ def compute_centrality(graph, kind='degree'):
             case 'closeness':
                 return nx.closeness_centrality(graph)
             case 'alpha-centrality':
-                spectral_radius = max(abs(v) for v in nx.adjacency_spectrum(graph))
-                alpha = 1.0 / (spectral_radius + 1.0)
+                max_degree = max(d for _, d in graph.degree())
+                alpha = 1.0 / (max_degree + 1.0)
                 return nx.katz_centrality(graph, alpha=alpha, weight='weight')
             case _:
                 print(f"Unsupported centrality type: {kind}")
@@ -93,12 +93,15 @@ def join(prefix, sufix="_full_centrality.csv", kinds=['degree', 'betweenness', '
     result = result.sort_values('average', ascending=False)
     result.to_csv(f"{prefix}{sufix}", sep=',', index=False)
 
-def print_typst_table(path,kind=['degree', 'betweenness', 'alpha-centrality']):
+def print_typst_table(path,kind=['degree', 'betweenness', 'alpha-centrality', 'average']):
     df = pd.read_csv(path, sep=',')
     df = df.head(10)  # Print only top 10 for brevity
+    print("[*node*],", end=' ')
     for k in kind:
         print(f"[*{k}*],", end=' ')
+    print("\n")
     for _, row in df.iterrows():
+        print(f"[{row['node']}],", end=' ')
         for k in kind:
             print(f"[{row[k]:.6f}],", end=' ')
         
@@ -110,7 +113,7 @@ if __name__ == "__main__":
     print("Loading aggregated graph...")
     agg_graph = load_graph_from_edgelist("graphs/reddit_weighted_aggregated.edgelist", kind='DiGraph')
     print("Loading largest strongly connected component...")
-    largest = max(nx.strongly_connected_components(agg_graph), key=len)
+    largest = nx.DiGraph(agg_graph.subgraph(max(nx.strongly_connected_components(agg_graph), key=len)))
 
 
     print("Negative graph centrality...")
@@ -136,5 +139,5 @@ if __name__ == "__main__":
     print_typst_table("centrality/reddit_aggregated_centrality_full_centrality.csv")
 
     print("Joining largest strongly connected component graph centrality...")
-    join("centrality/reddit_largest_component_centrality","_full_centrality.csv")
-    print_typst_table("centrality/reddit_largest_component_centrality_full_centrality.csv",['degree', 'betweenness', 'closeness', 'alpha-centrality'])
+    join("centrality/reddit_largest_component_centrality","_full_centrality.csv", kinds=['degree', 'betweenness', 'closeness', 'alpha-centrality'])
+    print_typst_table("centrality/reddit_largest_component_centrality_full_centrality.csv",['degree', 'betweenness', 'closeness', 'alpha-centrality', 'average'])

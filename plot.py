@@ -27,6 +27,10 @@ def load_graph_from_edgelist(path, kind='DiGraph', sep='\t'):
                     value = int(value)
                 except ValueError:
                     value = 1
+                try:
+                    sent = int(sent)
+                except ValueError:
+                    sent = 1
                 G.add_edge(src, dst, weight=value*sent)
             elif len(row) == 3:
                 src, dst, sent = row[0].strip(), row[1].strip(), row[2].strip()
