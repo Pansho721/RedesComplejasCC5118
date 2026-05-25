@@ -68,16 +68,19 @@ def get_some_centrality(graph,kinds=['degree', 'betweenness', 'alpha-centrality'
     return dict(zip(kinds, results))
 
 def save_centrality(dict, output_name):
-    for kind in dict:
-        out_path = f"{output_name}_{kind}.csv"
-        out_dir = os.path.dirname(out_path)
-        if out_dir:
-            os.makedirs(out_dir, exist_ok=True)
+        try:
+            for kind in dict:
+                out_path = f"{output_name}_{kind}.csv"
+                out_dir = os.path.dirname(out_path)
+                if out_dir:
+                    os.makedirs(out_dir, exist_ok=True)
 
-        with open(out_path, 'w', encoding='utf-8') as f:
-            print(kind, "centrality saved to:", out_path)
-            for node, centrality in sorted(dict[kind].items(), key=lambda item: item[1], reverse=True):
-                f.write(f"{node}\t{centrality}\n")
+                with open(out_path, 'w', encoding='utf-8') as f:
+                    print(kind, "centrality saved to:", out_path)
+                    for node, centrality in sorted(dict[kind].items(), key=lambda item: item[1], reverse=True):
+                        f.write(f"{node}\t{centrality}\n")
+        except Exception as e:
+            print(f"Error saving centrality: {kind}\n\t{e}")
 
 def join(prefix, sufix="_full_centrality.csv", kinds=['degree', 'betweenness', 'alpha-centrality']):
     df = []
@@ -105,7 +108,7 @@ if __name__ == "__main__":
     print("Loading negative graph...")
     neg_graph = load_graph_from_edgelist("graphs/reddit_negative.edgelist", kind='DiGraph')
     print("Loading aggregated graph...")
-    agg_graph = load_graph_from_edgelist("graphs/reddit_weighted_aggregated.edgelist", kind='MultiDiGraph')
+    agg_graph = load_graph_from_edgelist("graphs/reddit_weighted_aggregated.edgelist", kind='DiGraph')
     print("Loading largest strongly connected component...")
     largest = max(nx.strongly_connected_components(agg_graph), key=len)
 
