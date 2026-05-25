@@ -43,26 +43,33 @@ def betweenness_centrality_parallel(G, processes=None):
 
 
 def compute_centrality(graph, kind='degree'):
-    match kind:
-        case 'degree':
-            return nx.degree_centrality(graph)
-        case 'betweenness':
-            return betweenness_centrality_parallel(graph)
-        case 'closeness':
-            return nx.closeness_centrality(graph)
-        case _:
-            print(f"Unsupported centrality type: {kind}")
-            return None
+    try:
+        match kind:
+            case 'degree':
+                return nx.degree_centrality(graph)
+            case 'betweenness':
+                return betweenness_centrality_parallel(graph)
+            case 'closeness':
+                return nx.closeness_centrality(graph)
+            case 'alpha-centrality':
+                spectral_radius = max(abs(v) for v in nx.adjacency_spectrum(graph))
+                alpha = 1.0 / (spectral_radius + 1.0)
+                return nx.katz_centrality(graph, alpha=alpha, weight='weight')
+            case _:
+                print(f"Unsupported centrality type: {kind}")
+                return None
+    except Exception as e:
+        print(f"Error computing {kind} centrality: {e}")
+        return None
 
-def get_full_centrality(graph):
+def get_some_centrality(graph,kinds=['degree', 'betweenness', 'alpha-centrality']):
     """Compute all centrality measures and return as dict of dicts."""
-    kinds = ['degree', 'betweenness', 'closeness']
     results = [compute_centrality(graph, kind) for kind in kinds]
     return dict(zip(kinds, results))
 
 def save_centrality(dict, output_name):
     for kind in dict:
-        out_path = f"{output_name}_{kind}.centrality"
+        out_path = f"{output_name}_{kind}.csv"
         out_dir = os.path.dirname(out_path)
         if out_dir:
             os.makedirs(out_dir, exist_ok=True)
@@ -72,38 +79,50 @@ def save_centrality(dict, output_name):
             for node, centrality in sorted(dict[kind].items(), key=lambda item: item[1], reverse=True):
                 f.write(f"{node}\t{centrality}\n")
 
-def join(prefix, sufix="_full_centrality.csv"):
-    df1 = pd.read_csv(f"{prefix}_degree.centrality", sep='\t', names=['node', 'degree'])
-    df2 = pd.read_csv(f"{prefix}_betweenness.centrality", sep='\t', names=['node', 'betweenness'])
-    df3 = pd.read_csv(f"{prefix}_closeness.centrality", sep='\t', names=['node', 'closeness'])
-    result = df1.merge(df2, on='node').merge(df3, on='node')
-    result['average'] = (result['degree'] + result['betweenness'] + result['closeness']) / 3
+def join(prefix, sufix="_full_centrality.csv", kinds=['degree', 'betweenness', 'alpha-centrality']):
+    df = []
+    for kind in kinds:
+        df.append(pd.read_csv(f"{prefix}_{kind}.csv", sep='\t', names=['node', kind]))
+    result = df[0]
+    for i in range(1, len(df)):
+        result = result.merge(df[i], on='node')
+    result['average'] = sum(result[k] for k in kinds) / len(kinds)
     result = result.sort_values('average', ascending=False)
     result.to_csv(f"{prefix}{sufix}", sep=',', index=False)
 
-def print_typst_table(path):
+def print_typst_table(path,kind=['degree', 'betweenness', 'alpha-centrality']):
     df = pd.read_csv(path, sep=',')
     df = df.head(10)  # Print only top 10 for brevity
-    print("[*node*], [*degree*], [*betweenness*], [*closeness*], [*average*]")
+    for k in kind:
+        print(f"[*{k}*],", end=' ')
     for _, row in df.iterrows():
-        print(f"[{row['node']}], [{row['degree']:.6f}], [{row['betweenness']:.6f}], [{row['closeness']:.6f}], [{row['average']:.6f}],")
-                
+        for k in kind:
+            print(f"[{row[k]:.6f}],", end=' ')
+        
+
 
 if __name__ == "__main__":
     print("Loading negative graph...")
     neg_graph = load_graph_from_edgelist("graphs/reddit_negative.edgelist", kind='DiGraph')
     print("Loading aggregated graph...")
     agg_graph = load_graph_from_edgelist("graphs/reddit_weighted_aggregated.edgelist", kind='MultiDiGraph')
+    print("Loading largest strongly connected component...")
+    largest = max(nx.strongly_connected_components(agg_graph), key=len)
+
 
     print("Negative graph centrality...")
-    neg_centrality = get_full_centrality(neg_graph)
+    neg_centrality = get_some_centrality(neg_graph)
     print("Aggregated graph centrality...")
-    agg_centrality = get_full_centrality(agg_graph)
+    agg_centrality = get_some_centrality(agg_graph)
+    print("Largest strongly connected component graph centrality...")
+    lar_centrality = get_some_centrality(largest, ['degree', 'betweenness', 'closeness', 'alpha-centrality'])
 
     print("Saving negative graph centrality...")
     save_centrality(neg_centrality, "centrality/reddit_negative_centrality")
     print("Saving aggregated graph centrality...")
     save_centrality(agg_centrality, "centrality/reddit_aggregated_centrality")
+    print("Saving largest strongly connected component graph centrality...")
+    save_centrality(lar_centrality, "centrality/reddit_largest_component_centrality")
 
     print("Joining negative graph centrality...")
     join("centrality/reddit_negative_centrality","_full_centrality.csv")
@@ -112,3 +131,7 @@ if __name__ == "__main__":
     print("Joining aggregated graph centrality...")
     join("centrality/reddit_aggregated_centrality","_full_centrality.csv")
     print_typst_table("centrality/reddit_aggregated_centrality_full_centrality.csv")
+
+    print("Joining largest strongly connected component graph centrality...")
+    join("centrality/reddit_largest_component_centrality","_full_centrality.csv")
+    print_typst_table("centrality/reddit_largest_component_centrality_full_centrality.csv",['degree', 'betweenness', 'closeness', 'alpha-centrality'])
