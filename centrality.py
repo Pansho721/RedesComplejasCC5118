@@ -7,6 +7,11 @@ from multiprocessing import Pool
 import itertools
 
 
+#   ==========================================================================================
+#           BEGIN NETWORKX COPY PASTE DOCUMENTATION
+#           parallel betweenness centrality function
+#   ==========================================================================================
+
 def chunks(l, n):
     """Divide a list of nodes `l` in `n` chunks"""
     l_c = iter(l)
@@ -41,7 +46,12 @@ def betweenness_centrality_parallel(G, processes=None):
             bt_c[n] += bt[n]
     return bt_c
 
+#   ==========================================================================================
+#           END NETWORKX COPY PASTE DOCUMENTATION
+#   ==========================================================================================
 
+
+# Lazy compute centraliy
 def compute_centrality(graph, kind='degree'):
     try:
         match kind:
@@ -62,11 +72,13 @@ def compute_centrality(graph, kind='degree'):
         print(f"Error computing {kind} centrality: {e}")
         return None
 
+# Compute the selected centrality measure
 def get_some_centrality(graph,kinds=['degree', 'betweenness', 'alpha-centrality']):
     """Compute all centrality measures and return as dict of dicts."""
     results = [compute_centrality(graph, kind) for kind in kinds]
     return dict(zip(kinds, results))
 
+# Save centrality measures to CSV files
 def save_centrality(dict, output_name):
         try:
             for kind in dict:
@@ -82,6 +94,7 @@ def save_centrality(dict, output_name):
         except Exception as e:
             print(f"Error saving centrality: {kind}\n\t{e}")
 
+# Join all centralities into a single CSV file with an average column
 def join(prefix, sufix="_full_centrality.csv", kinds=['degree', 'betweenness', 'alpha-centrality']):
     df = []
     for kind in kinds:
@@ -104,6 +117,7 @@ def print_typst_table(path,kind=['degree', 'betweenness', 'alpha-centrality', 'a
         print(f"[{row['node']}],", end=' ')
         for k in kind:
             print(f"[{row[k]:.6f}],", end=' ')
+        print("\n")
         
 
 
