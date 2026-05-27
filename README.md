@@ -32,9 +32,6 @@ Este proyecto abarca tres objetivos principales:
 - Calcular medidas de centralidad para cada grafo interezante de analizar.
 
 
-
-
-
 ### Preproceso
 
 El preproceso genera distintos listados en texto plano que representan grafos, para ello se lee el archivo tsv y se genera los grafos desde esta lectura, luego se usan estos grafos elementales para generar grafos especificos.
@@ -58,6 +55,15 @@ Para graficar hay dos scripts, uno en C++ y otro en python.
 Este es un script que transforma un grafo de texto plano en una particion del grafo usando el algoritmo de vertex cut, es decir, selecciona una conjunto de vertices de forma equitativa y los define como parte de una de las particiones, a estos nodos se le llama masters, luego inserta todos los arcos que contengan a este nodo, los nodos que no pertenecian a los masters de la particiones se le conocen como mirrors.
 
     - Dada una lista de arcos simple devuelve una particion del grafo.
+
+En linux usando g++, el uso es el siguiente:
+
+> $g++ Balanced_p-way_Vertex-cut.cpp
+
+> $./a.out *edgelist* *N*
+
+Donde _edgelist_ corresponde a la direccion donde esta la lista de arcos y _N_ el numero de particiones.
+Esto crea los directorios partition, partition Master y partition Mirror, los cuales respectivamente son: Para la lista de arcos, nodos asignados a la particion y nodos duplicados.
 
 #### plot.py
 
