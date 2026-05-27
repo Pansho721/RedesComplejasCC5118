@@ -124,7 +124,7 @@ def draw_and_save_graph(G, out_path, title, node_size=8, fig_size=(20, 20), dpi=
 def plot_partitions():
     partition = write_partition_graphs(num_partitions=9, file_prefix="partition/")
     for i, p in enumerate(partition):
-        out_path = f"graph_{i}.png"
+        out_path = f"img/graph_{i}.png"
         draw_and_save_graph(p, out_path,"", node_size=10, fig_size=(20, 20), dpi=100)
 
 def plot_graph(path="graphs/reddit.edgelist", title="Full graph", size=(80, 80), dpi=30, sep='\t'):
