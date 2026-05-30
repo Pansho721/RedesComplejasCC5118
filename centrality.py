@@ -169,3 +169,18 @@ if __name__ == "__main__":
     print("\tJoining largest strongly connected component graph centrality...")
     join("centrality/reddit_largest_component_centrality","_full_centrality.csv", kinds=['degree', 'betweenness', 'closeness', 'alpha-centrality'])
     print_typst_table("centrality/reddit_largest_component_centrality_full_centrality.csv",['degree', 'betweenness', 'closeness', 'alpha-centrality', 'average'])
+
+
+# ==========================================================================================
+#               Histogram construction
+# ==========================================================================================
+
+    print("Constructing histograms for negative graph...")
+    for kind in ['degree', 'alpha-centrality']:
+        data = list(neg_centrality[kind].values())
+        plt.figure()
+        plt.hist(data, bins=50, density=True)
+        plt.title(f"{kind.capitalize()} Centrality Distribution (Negative Graph)")
+        plt.xlabel(f"{kind.capitalize()} Centrality")
+        plt.ylabel("Density")
+        plt.savefig(f"histograms/reddit_negative_{kind}_histogram.png")
