@@ -227,4 +227,5 @@ partitionMirror/*
 graphs/*
 img/*
 centrality/*
+centrality_summary/*
 Graficos/*

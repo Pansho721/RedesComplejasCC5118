@@ -93,16 +93,16 @@ def save_centrality(dict, output_name):
             print(f"\t\tError saving centrality: {kind}\n\t\t{e}")
 
 # Join all centralities into a single CSV file with an average column
-def join(prefix, sufix="_full_centrality.csv", kinds=['degree', 'betweenness', 'alpha-centrality']):
+def join(output, prefix, sufix="full_centrality.csv", kinds=['degree', 'betweenness', 'alpha-centrality']):
     df = []
     for kind in kinds:
-        df.append(pd.read_csv(f"{prefix}_{kind}.csv", sep='\t', names=['node', kind]))
+        df.append(pd.read_csv(f"centrality/{prefix}_{kind}.csv", sep='\t', names=['node', kind]))
     result = df[0]
     for i in range(1, len(df)):
         result = result.merge(df[i], on='node')
     result['average'] = sum(result[k] for k in kinds) / len(kinds)
     result = result.sort_values('average', ascending=False)
-    result.to_csv(f"{prefix}{sufix}", sep=',', index=False)
+    result.to_csv(f"{output}{prefix}_{sufix}", sep=',', index=False)
 
 def print_typst_table(path,kind=['degree', 'betweenness', 'alpha-centrality', 'average']):
     df = pd.read_csv(path, sep=',')
@@ -159,28 +159,14 @@ if __name__ == "__main__":
     print("==========================================")
 
     print("\tJoining negative graph centrality...")
-    join("centrality/reddit_negative_centrality","_full_centrality.csv")
-    print_typst_table("centrality/reddit_negative_centrality_full_centrality.csv")
+    join("centrality_summary/","reddit_negative_centrality","full_centrality.csv")
+    print_typst_table("centrality_summary/reddit_negative_centrality_full_centrality.csv")
 
     print("\tJoining aggregated graph centrality...")
-    join("centrality/reddit_aggregated_centrality","_full_centrality.csv")
-    print_typst_table("centrality/reddit_aggregated_centrality_full_centrality.csv")
+    join("centrality_summary/","reddit_aggregated_centrality","full_centrality.csv")
+    print_typst_table("centrality_summary/reddit_aggregated_centrality_full_centrality.csv")
 
     print("\tJoining largest strongly connected component graph centrality...")
-    join("centrality/reddit_largest_component_centrality","_full_centrality.csv", kinds=['degree', 'betweenness', 'closeness', 'alpha-centrality'])
-    print_typst_table("centrality/reddit_largest_component_centrality_full_centrality.csv",['degree', 'betweenness', 'closeness', 'alpha-centrality', 'average'])
+    join("centrality_summary/","reddit_largest_component_centrality","full_centrality.csv", kinds=['degree', 'betweenness', 'closeness', 'alpha-centrality'])
+    print_typst_table("centrality_summary/reddit_largest_component_centrality_full_centrality.csv",['degree', 'betweenness', 'closeness', 'alpha-centrality', 'average'])
 
-
-# ==========================================================================================
-#               Histogram construction
-# ==========================================================================================
-
-    print("Constructing histograms for negative graph...")
-    for kind in ['degree', 'alpha-centrality']:
-        data = list(neg_centrality[kind].values())
-        plt.figure()
-        plt.hist(data, bins=50, density=True)
-        plt.title(f"{kind.capitalize()} Centrality Distribution (Negative Graph)")
-        plt.xlabel(f"{kind.capitalize()} Centrality")
-        plt.ylabel("Density")
-        plt.savefig(f"histograms/reddit_negative_{kind}_histogram.png")
