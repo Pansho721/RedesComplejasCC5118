@@ -3,6 +3,7 @@ from plot import load_graph_from_edgelist
 import networkx as nx
 import pandas as pd
 import itertools
+import math
 import os
 
 #   ==========================================================================================
@@ -60,8 +61,9 @@ def compute_centrality(graph, kind='degree'):
             case 'closeness':
                 return nx.closeness_centrality(graph)
             case 'alpha-centrality':
-                max_degree = max(d for _, d in graph.degree())
-                alpha = 1.0 / (max_degree + 1.0)
+                eigenvalues = nx.adjacency_spectrum(graph)
+                spectral_radius = max(abs(e) for e in eigenvalues)
+                alpha = 0.85 / spectral_radius
                 return nx.katz_centrality(graph, alpha=alpha, weight='weight')
             case _:
                 print(f"\t\tUnsupported centrality type: {kind}")
@@ -71,9 +73,12 @@ def compute_centrality(graph, kind='degree'):
         return None
 
 # Compute the selected centrality measure
-def get_some_centrality(graph,kinds=['degree', 'betweenness', 'alpha-centrality']):
+def get_some_centrality(graph,kinds=['degree', 'alpha-centrality']):
     """Compute all centrality measures and return as dict of dicts."""
-    results = [compute_centrality(graph, kind) for kind in kinds]
+    results = []
+    for kind in kinds:
+        print(f"\t\tComputing {kind} centrality...")
+        results.append(compute_centrality(graph, kind))
     return dict(zip(kinds, results))
 
 # Save centrality measures to CSV files
@@ -93,7 +98,7 @@ def save_centrality(dict, output_name):
             print(f"\t\tError saving centrality: {kind}\n\t\t{e}")
 
 # Join all centralities into a single CSV file with an average column
-def join(output, prefix, sufix="full_centrality.csv", kinds=['degree', 'betweenness', 'alpha-centrality']):
+def join(output, prefix, sufix="full_centrality.csv", kinds=['degree', 'alpha-centrality']):
     df = []
     for kind in kinds:
         df.append(pd.read_csv(f"centrality/{prefix}_{kind}.csv", sep='\t', names=['node', kind]))
@@ -107,7 +112,7 @@ def join(output, prefix, sufix="full_centrality.csv", kinds=['degree', 'betweenn
         os.makedirs(out_dir, exist_ok=True)
     result.to_csv(f"{output}{prefix}_{sufix}", sep=',', index=False)
 
-def print_typst_table(path,kind=['degree', 'betweenness', 'alpha-centrality', 'average']):
+def print_typst_table(path,kind=['degree', 'alpha-centrality', 'average']):
     df = pd.read_csv(path, sep=',')
     df = df.head(10)  # Print only top 10 for brevity
     print("[*node*],", end=' ')
@@ -173,3 +178,18 @@ if __name__ == "__main__":
     join("centrality_summary/","reddit_largest_component_centrality","full_centrality.csv", kinds=['degree', 'betweenness', 'closeness', 'alpha-centrality'])
     print_typst_table("centrality_summary/reddit_largest_component_centrality_full_centrality.csv",['degree', 'betweenness', 'closeness', 'alpha-centrality', 'average'])
 
+    print("==========================================")
+    print("Small world analysis SECTION")
+    print("==========================================")
+
+    print("\t largest small world analysis...")
+
+    k_avg = sum(dict(largest.degree()).values()) / largest.number_of_nodes()
+    L_ER = math.log(largest.number_of_nodes()) / math.log(k_avg)
+    C_ER = k_avg / largest.number_of_nodes()
+    L = nx.average_shortest_path_length(largest)
+    C = nx.average_clustering(largest.to_undirected())
+
+    print(f"[], [*CONX_REDDIT*], [*ER*],")
+    print(f"[Largo caracteristico], [{L}], [{L_ER}],")
+    print(f"[Coeficiente de clustering], [{C}], [{C_ER}],")
