@@ -65,6 +65,8 @@ def compute_centrality(graph, kind='degree'):
                 spectral_radius = max(abs(e) for e in eigenvalues)
                 alpha = 0.85 / spectral_radius
                 return nx.katz_centrality(graph, alpha=alpha, weight='weight')
+            case 'pagerank':
+                return nx.pagerank(graph, alpha=0.85, weight='weight')
             case _:
                 print(f"\t\tUnsupported centrality type: {kind}")
                 return None
@@ -98,7 +100,7 @@ def save_centrality(dict, output_name):
             print(f"\t\tError saving centrality: {kind}\n\t\t{e}")
 
 # Join all centralities into a single CSV file with an average column
-def join(output, prefix, sufix="full_centrality.csv", kinds=['degree', 'alpha-centrality']):
+def join(output, prefix, sufix, kinds):
     df = []
     for kind in kinds:
         df.append(pd.read_csv(f"centrality/{prefix}_{kind}.csv", sep='\t', names=['node', kind]))
@@ -112,22 +114,28 @@ def join(output, prefix, sufix="full_centrality.csv", kinds=['degree', 'alpha-ce
         os.makedirs(out_dir, exist_ok=True)
     result.to_csv(f"{output}{prefix}_{sufix}", sep=',', index=False)
 
-def print_typst_table(path,kind=['degree', 'alpha-centrality', 'average']):
+def print_typst_table(path, kinds):
+    print(kinds)
     df = pd.read_csv(path, sep=',')
     df = df.head(10)  # Print only top 10 for brevity
     print("[*node*],", end=' ')
-    for k in kind:
+    for k in kinds:
         print(f"[*{k}*],", end=' ')
     print("\n")
     for _, row in df.iterrows():
         print(f"[{row['node']}],", end=' ')
-        for k in kind:
+        for k in kinds:
             print(f"[{row[k]:.6f}],", end=' ')
         print("\n")
         
 
 
 if __name__ == "__main__":
+
+    #conx  = ['degree', 'betweenness', 'closeness', 'alpha-centrality', 'pagerank']
+    #nconx = ['degree', 'alpha-centrality', 'pagerank']
+    conx  = ['degree', 'pagerank']
+    nconx = ['degree', 'pagerank']
 
     print("==========================================")
     print("Loading graph SECTION")
@@ -140,43 +148,46 @@ if __name__ == "__main__":
     print("\tLoading largest strongly connected component...")
     largest = nx.DiGraph(agg_graph.subgraph(max(nx.strongly_connected_components(agg_graph), key=len)))
 
+    graphs = {  'NEG_REDDIT': neg_graph,
+                'AGG_REDDIT': agg_graph,
+                'CONX_REDDIT': largest}
+
+
     print("==========================================")
     print("Centrality Calculating SECTION")
     print("==========================================")
-
-    print("\tNegative graph centrality...")
-    neg_centrality = get_some_centrality(neg_graph)
-    print("\tAggregated graph centrality...")
-    agg_centrality = get_some_centrality(agg_graph)
-    print("\tLargest strongly connected component graph centrality...")
-    lar_centrality = get_some_centrality(largest, ['degree', 'betweenness', 'closeness', 'alpha-centrality'])
-
+    centralities = {}
+    for g,_ in graphs.items():
+        print(f"\tCalculating {g} graph centrality...")
+        centralities[g] = get_some_centrality(graphs[g], conx if g == 'CONX_REDDIT' else nconx)
+    
     print("==========================================")
     print("Centrality Saving SECTION")
     print("==========================================")
+    for g, centrality in centralities.items():
+        print(f"\tSaving {g} graph centrality...")
+        save_centrality(centrality, f"centrality/reddit_{g}_centrality")
 
-    print("\tSaving negative graph centrality...")
-    save_centrality(neg_centrality, "centrality/reddit_negative_centrality")
-    print("\tSaving aggregated graph centrality...")
-    save_centrality(agg_centrality, "centrality/reddit_aggregated_centrality")
-    print("\tSaving largest strongly connected component graph centrality...")
-    save_centrality(lar_centrality, "centrality/reddit_largest_component_centrality")
+    print("==========================================")
+    print("Joining SECTION")
+    print("==========================================")
+
+    for g, centrality in centralities.items():
+        print(f"\tJoining {g} graph centrality...")
+        kinds = conx if g == 'CONX_REDDIT' else nconx
+        join("centrality_summary/", f"reddit_{g}_centrality", "full_centrality.csv", kinds)
+        
 
     print("==========================================")
     print("Printing SECTION")
     print("==========================================")
 
-    print("\tJoining negative graph centrality...")
-    join("centrality_summary/","reddit_negative_centrality","full_centrality.csv")
-    print_typst_table("centrality_summary/reddit_negative_centrality_full_centrality.csv")
+    for g, centrality in centralities.items():
+        print(f"\tPrinting centrality for {g} table")
+        kinds = conx if g == 'CONX_REDDIT' else nconx
+        kinds.append('average')
+        print_typst_table(f"centrality_summary/reddit_{g}_centrality_full_centrality.csv", kinds)
 
-    print("\tJoining aggregated graph centrality...")
-    join("centrality_summary/","reddit_aggregated_centrality","full_centrality.csv")
-    print_typst_table("centrality_summary/reddit_aggregated_centrality_full_centrality.csv")
-
-    print("\tJoining largest strongly connected component graph centrality...")
-    join("centrality_summary/","reddit_largest_component_centrality","full_centrality.csv", kinds=['degree', 'betweenness', 'closeness', 'alpha-centrality'])
-    print_typst_table("centrality_summary/reddit_largest_component_centrality_full_centrality.csv",['degree', 'betweenness', 'closeness', 'alpha-centrality', 'average'])
 
     print("==========================================")
     print("Small world analysis SECTION")
