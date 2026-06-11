@@ -132,10 +132,8 @@ def print_typst_table(path, kinds):
 
 if __name__ == "__main__":
 
-    #conx  = ['degree', 'betweenness', 'closeness', 'alpha-centrality', 'pagerank']
-    #nconx = ['degree', 'alpha-centrality', 'pagerank']
-    conx  = ['degree', 'pagerank']
-    nconx = ['degree', 'pagerank']
+    conx  = ['degree', 'betweenness', 'closeness', 'alpha-centrality', 'pagerank']
+    nconx = ['degree', 'alpha-centrality', 'pagerank']
 
     print("==========================================")
     print("Loading graph SECTION")
@@ -171,7 +169,6 @@ if __name__ == "__main__":
     print("==========================================")
     print("Joining SECTION")
     print("==========================================")
-
     for g, centrality in centralities.items():
         print(f"\tJoining {g} graph centrality...")
         kinds = conx if g == 'CONX_REDDIT' else nconx
@@ -181,7 +178,6 @@ if __name__ == "__main__":
     print("==========================================")
     print("Printing SECTION")
     print("==========================================")
-
     for g, centrality in centralities.items():
         print(f"\tPrinting centrality for {g} table")
         kinds = conx if g == 'CONX_REDDIT' else nconx
