@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 
 def smallWorld(graphs, names):
-    print(f"[Graph], [Metric], [*CONX_REDDIT*], [*ER*],")
+    print(f"[*Graph*], [*Metric*], [*graph value*], [*ER*],")
     for i in range(len(graphs)):
         graph = graphs[i]
         name = names[i]
@@ -31,7 +31,7 @@ agrupado = df.groupby(['SOURCE_SUBREDDIT', 'TARGET_SUBREDDIT']).agg(
 
 print("==========================================================")
 print("\tGraph Definition SECTION")
-print("==========================================================")
+print("==========================================================\n")
 
 AGG_REDDIT = load_graph_from_edgelist("graphs/reddit_weighted_aggregated.edgelist", kind='DiGraph')
 CONX_REDDIT = nx.DiGraph(AGG_REDDIT.subgraph(max(nx.strongly_connected_components(AGG_REDDIT), key=len)))
@@ -41,23 +41,23 @@ NEG_REDDIT_UNDIR = NEG_REDDIT.to_undirected()
 lcc_neg = sorted(nx.connected_components(NEG_REDDIT_UNDIR), key=len, reverse=True)
 CONX_NEG = NEG_REDDIT_UNDIR.subgraph(lcc_neg[0]).copy()
 
+print("\n==========================================================")
+print("\tAssortativity SECTION")
+print("==========================================================\n")
 
-
-
-
-assortativity_neg = nx.degree_assortativity_coefficient(NEG_REDDIT)
+assortativity_neg = nx.degree_assortativity_coefficient(NEG_REDDIT, weight='weight')
 print(f"Assortativity en NEG_REDDIT: {assortativity_neg}")
 
 
-print("==========================================")
+print("\n==========================================")
 print("\tSmall world analysis SECTION")
-print("==========================================")
+print("==========================================\n")
 
 smallWorld([CONX_REDDIT, CONX_NEG], ["CONX_REDDIT", "CONX_NEG"])
 
-print("==========================================================")
+print("\n==========================================================")
 print("\tBowtie analysis SECTION")
-print("==========================================================")
+print("==========================================================\n")
 
 # 1. SEPARAR IN-DEGREE Y OUT-DEGREE EN LA RED DE ODIO
 in_degree_neg = nx.in_degree_centrality(NEG_REDDIT)
@@ -80,12 +80,11 @@ out_component = nx.descendants(AGG_REDDIT, nodo_referencia) - scc_nodes
 # Tendrils: El resto de los nodos que no pertenecen a ninguna de las 3 anteriores
 tendrils = set(AGG_REDDIT.nodes()) - scc_nodes - in_component - out_component
 
-print("\n--- ESTRUCTURA BOW-TIE (HUMITA) DE REDDIT ---")
 print(f"Total nodos en la red: {len(AGG_REDDIT.nodes())}")
-print(f"Núcleo (SCC): {len(scc_nodes)} nodos")
-print(f"Componente IN (Inician hilos hacia el núcleo): {len(in_component)} nodos")
-print(f"Componente OUT (Son mencionados por el núcleo): {len(out_component)} nodos")
-print(f"Tendrils/Tubos (Periferia aislada): {len(tendrils)} nodos")
+print(f"\nNúcleo (SCC): {len(scc_nodes)} nodos")
+print(f"\nComponente IN (Inician hilos hacia el núcleo): {len(in_component)} nodos")
+print(f"\nComponente OUT (Son mencionados por el núcleo): {len(out_component)} nodos")
+print(f"\nTendrils/Tubos (Periferia aislada): {len(tendrils)} nodos\n")
 
 
 # GRÁFICO 2: Proporciones de la Estructura Bow-tie
@@ -105,4 +104,3 @@ plt.title("Estructura Macroscópica Bow-tie de Reddit", fontsize=14)
 plt.ylabel("Cantidad de Subreddits", fontsize=12)
 plt.ylim(0, max(valores) + 2000)
 plt.savefig("bowtie_reddit.png", dpi=300, bbox_inches='tight')
-plt.show()
