@@ -56,6 +56,10 @@ def compute_centrality(graph, kind='degree'):
         match kind:
             case 'degree':
                 return nx.degree_centrality(graph)
+            case 'in-degree':
+                return nx.in_degree_centrality(graph)
+            case 'out-degree':
+                return nx.out_degree_centrality(graph)
             case 'betweenness':
                 return betweenness_centrality_parallel(graph)
             case 'closeness':
@@ -131,9 +135,11 @@ def print_typst_table(path, kinds):
 
 
 if __name__ == "__main__":
-
-    conx  = ['degree', 'betweenness', 'closeness', 'alpha-centrality', 'pagerank']
-    nconx = ['degree', 'alpha-centrality', 'pagerank']
+    kinds = {
+        'AGG_REDDIT': ['degree', 'pagerank'],
+        'CONX_REDDIT': ['degree', 'betweenness', 'closeness', 'alpha-centrality', 'pagerank'],
+        'NEG_REDDIT': ['degree', 'in-degree', 'out-degree', 'alpha-centrality', 'pagerank'],
+    }
 
     print("==========================================")
     print("Loading graph SECTION")
@@ -157,7 +163,8 @@ if __name__ == "__main__":
     centralities = {}
     for g,_ in graphs.items():
         print(f"\tCalculating {g} graph centrality...")
-        centralities[g] = get_some_centrality(graphs[g], conx if g == 'CONX_REDDIT' else nconx)
+        kind = kinds[g]
+        centralities[g] = get_some_centrality(graphs[g], kind)
     
     print("==========================================")
     print("Centrality Saving SECTION")
@@ -171,8 +178,8 @@ if __name__ == "__main__":
     print("==========================================")
     for g, centrality in centralities.items():
         print(f"\tJoining {g} graph centrality...")
-        kinds = conx if g == 'CONX_REDDIT' else nconx
-        join("centrality_summary/", f"reddit_{g}_centrality", "full_centrality.csv", kinds)
+        kind = kinds[g]
+        join("centrality_summary/", f"reddit_{g}_centrality", "full_centrality.csv", kind)
         
 
     print("==========================================")
@@ -180,23 +187,9 @@ if __name__ == "__main__":
     print("==========================================")
     for g, centrality in centralities.items():
         print(f"\tPrinting centrality for {g} table")
-        kinds = conx if g == 'CONX_REDDIT' else nconx
-        kinds.append('average')
-        print_typst_table(f"centrality_summary/reddit_{g}_centrality_full_centrality.csv", kinds)
+        kind = kinds[g]
+        kind.append('average')
+        print_typst_table(f"centrality_summary/reddit_{g}_centrality_full_centrality.csv", kind)
 
 
-    print("==========================================")
-    print("Small world analysis SECTION")
-    print("==========================================")
-
-    print("\t largest small world analysis...")
-
-    k_avg = sum(dict(largest.degree()).values()) / largest.number_of_nodes()
-    L_ER = math.log(largest.number_of_nodes()) / math.log(k_avg)
-    C_ER = k_avg / largest.number_of_nodes()
-    L = nx.average_shortest_path_length(largest)
-    C = nx.average_clustering(largest.to_undirected())
-
-    print(f"[], [*CONX_REDDIT*], [*ER*],")
-    print(f"[Largo caracteristico], [{L}], [{L_ER}],")
-    print(f"[Coeficiente de clustering], [{C}], [{C_ER}],")
+    
