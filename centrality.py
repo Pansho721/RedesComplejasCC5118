@@ -132,7 +132,16 @@ def print_typst_table(path, kinds):
             print(f"[{row[k]:.6f}],", end=' ')
         print("\n")
         
-
+def stats(input, graph, kinds):
+    df = pd.read_csv(f"{input}/{graph}_full_centrality.csv", sep=',')
+    print(f"\t\tStatistics for {graph} centrality:")
+    for kind in kinds:
+        max_value = df[kind].max()
+        min_value = df[kind].min()
+        avg_value = df[kind].mean()
+        max_node = df.loc[df[kind] == max_value, 'node'].values[0]
+        min_node = df.loc[df[kind] == min_value, 'node'].values[0]
+        print(f"\t\t\t{kind}: max={max_value:.6f} ({max_node}), min={min_value:.6f} ({min_node}), avg={avg_value:.6f}")
 
 if __name__ == "__main__":
     kinds = {
@@ -180,7 +189,14 @@ if __name__ == "__main__":
         print(f"\tJoining {g} graph centrality...")
         kind = kinds[g]
         join("centrality_summary/", f"reddit_{g}_centrality", "full_centrality.csv", kind)
-        
+    
+    print("==========================================")
+    print("Stadistic SECTION")
+    print("==========================================")
+    for g, centrality in centralities.items():
+        print(f"\tPrinting {g} graph centrality statistics...")
+        kind = kinds[g]
+        stats("centrality_summary", f"reddit_{g}_centrality", kind)
 
     print("==========================================")
     print("Printing SECTION")

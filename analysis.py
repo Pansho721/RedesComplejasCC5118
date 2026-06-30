@@ -1,3 +1,4 @@
+import os
 import math
 import pandas as pd
 import networkx as nx
@@ -53,7 +54,7 @@ print("\n==========================================")
 print("\tSmall world analysis SECTION")
 print("==========================================\n")
 
-smallWorld([CONX_REDDIT, CONX_NEG], ["CONX_REDDIT", "CONX_NEG"])
+#smallWorld([CONX_REDDIT, CONX_NEG], ["CONX_REDDIT", "CONX_NEG"])
 
 print("\n==========================================================")
 print("\tBowtie analysis SECTION")
@@ -103,4 +104,13 @@ for barra in barras:
 plt.title("Estructura Macroscópica Bow-tie de Reddit", fontsize=14)
 plt.ylabel("Cantidad de Subreddits", fontsize=12)
 plt.ylim(0, max(valores) + 2000)
-plt.savefig("bowtie_reddit.png", dpi=300, bbox_inches='tight')
+
+try:
+    out_path="img/bowtie_reddit.png"
+    out_dir = os.path.dirname(out_path)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+    plt.savefig(out_path, dpi=300, bbox_inches='tight')
+    print(f"Saved figure to: {out_path}")
+except Exception as e:
+    print("Failed to save figure:", e)
