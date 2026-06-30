@@ -26,10 +26,11 @@ Una vez inicializada el ambiente virtual instalamos las librerias desde el archi
 
 ## Aplicaciones
 
-Este proyecto abarca tres objetivos principales:
+Este proyecto abarca cuatro objetivos principales:
 - Generar archivos que representan grafos facil de usar desde el dataset soc-redditHyperlinks-body.tsv
 - Graficar los grafos.
 - Calcular medidas de centralidad para cada grafo interezante de analizar.
+- Realizar análisis de redes adicionales como small-world, assortativity y bow-tie.
 
 
 ### Preproceso
@@ -87,14 +88,31 @@ Para esta seccion el proyecto cuenta con un script que calcula la centralidad de
 #### centrality.py
 
 - *compute_centrality(graph, kind='degree'):*
-    - calcula la medida de centralidad indicada para el grafo dado. Soporta los tipos: degree, betweenness, closeness y alpha-centrality.
+    - calcula la medida de centralidad indicada para el grafo dado. Soporta los tipos: degree, in-degree, out-degree, betweenness, closeness, alpha-centrality y pagerank.
 - *get_some_centrality(graph, kinds=['degree', 'betweenness', 'alpha-centrality']):*
     - calcula todas las medidas de centralidad indicadas y retorna un diccionario con los resultados.
 - *save_centrality(dict, output_name):*
     - guarda cada medida de centralidad en un archivo CSV separado con el formato {output_name}_{kind}.csv, ordenado de mayor a menor.
-- *join(prefix, sufix='_full_centrality.csv', kinds=['degree', 'betweenness', 'alpha-centrality']):*
+- *join(output, prefix, sufix, kinds):*
     - une los archivos CSV de cada medida de centralidad en un solo archivo, agregando una columna de promedio entre todas las medidas.
-- *print_typst_table(path, kind=['degree', 'betweenness', 'alpha-centrality', 'average']):*
+- *print_typst_table(path, kinds):*
     - lee el archivo CSV de centralidad completo e imprime los 10 nodos con mayor promedio en formato de tabla typst.
+- *stats(input, graph, kinds):*
+    - imprime estadísticas básicas (máximo, mínimo y promedio) para cada medida de centralidad en un archivo centralizado.
 
 Ademas en esta seccion hay un segmento de codigo para calcular la medidad de centralidad betweenness en paralelo, esta fue sacada de la documentacion oficial de NetworkX.
+
+### Analysis
+
+Se agregó un nuevo script de análisis de redes.
+
+#### analysis.py
+
+- Realiza small-world analysis comparando la longitud caracteristica y el coeficiente de clustering con un grafo de Erdős–Rényi.
+- Calcula assortativity para el grafo negativo.
+- Descompone el grafo agregado en Bow-tie: SCC, IN, OUT y Tendrils.
+- Genera una visualización de la estructura Bow-tie en `img/bowtie_reddit.png`.
+- Utiliza los grafos:
+    - `graphs/reddit_weighted_aggregated.edgelist`
+    - `graphs/reddit_negative.edgelist`
+    - el mayor componente fuertemente conectado de `AGG_REDDIT`.
