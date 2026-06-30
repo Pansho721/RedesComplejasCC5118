@@ -54,7 +54,7 @@ print("\n==========================================")
 print("\tSmall world analysis SECTION")
 print("==========================================\n")
 
-#smallWorld([CONX_REDDIT, CONX_NEG], ["CONX_REDDIT", "CONX_NEG"])
+smallWorld([CONX_REDDIT, CONX_NEG], ["CONX_REDDIT", "CONX_NEG"])
 
 print("\n==========================================================")
 print("\tBowtie analysis SECTION")
