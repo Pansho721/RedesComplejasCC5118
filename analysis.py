@@ -11,23 +11,22 @@ def smallWorld(graphs, names):
     for i in range(len(graphs)):
         graph = graphs[i]
         name = names[i]
+
         k_avg = sum(dict(graph.degree()).values()) / graph.number_of_nodes()
+        k = (2 * graph.number_of_edges()) / graph.number_of_nodes()
+
         L_ER = math.log(graph.number_of_nodes()) / math.log(k_avg)
         C_ER = k_avg / graph.number_of_nodes()
+        
         L = nx.average_shortest_path_length(graph)
-        C = nx.average_clustering(graph.to_undirected())
+        C = nx.average_clustering(graph)
 
+        print(f"[{name}], [Grado promedio], [{k}], [{k_avg}],")
         print(f"[{name}], [Largo caracteristico], [{L}], [{L_ER}],")
         print(f"[{name}], [Coeficiente de clustering], [{C}], [{C_ER}],")
+
     return
 
-
-df = pd.read_csv('soc-redditHyperlinks-body.tsv', sep='\t')
-
-agrupado = df.groupby(['SOURCE_SUBREDDIT', 'TARGET_SUBREDDIT']).agg(
-    frecuencia=('LINK_SENTIMENT', 'count'),
-    sentimiento_neto=('LINK_SENTIMENT', 'sum')
-).reset_index()
 
 def bowtie(NEG_REDDIT, AGG_REDDIT, CONX_REDDIT):
     # 1. SEPARAR IN-DEGREE Y OUT-DEGREE EN LA RED DE ODIO
@@ -87,9 +86,11 @@ def bowtie(NEG_REDDIT, AGG_REDDIT, CONX_REDDIT):
 
 if __name__ == "__main__":
     AGG_REDDIT = load_graph_from_edgelist("graphs/reddit_weighted_aggregated.edgelist", kind='DiGraph')
-    CONX_REDDIT = nx.DiGraph(AGG_REDDIT.subgraph(max(nx.strongly_connected_components(AGG_REDDIT), key=len)))
     NEG_REDDIT = load_graph_from_edgelist("graphs/reddit_negative.edgelist", kind='DiGraph')
+    POS_REDDIT = load_graph_from_edgelist("graphs/reddit_positive.edgelist", kind='DiGraph')
+    CONX_REDDIT = nx.DiGraph(AGG_REDDIT.subgraph(max(nx.strongly_connected_components(AGG_REDDIT), key=len)))
     CONX_NEG = nx.DiGraph(NEG_REDDIT.subgraph(max(nx.strongly_connected_components(NEG_REDDIT), key=len)))
+    CONX_POS = nx.DiGraph(POS_REDDIT.subgraph(max(nx.strongly_connected_components(POS_REDDIT), key=len)))
 
     print("\n==========================================================")
     print("\tAssortativity SECTION")
@@ -97,14 +98,16 @@ if __name__ == "__main__":
 
     assortativity_neg = nx.degree_assortativity_coefficient(NEG_REDDIT, weight='weight')
     assortativity_agg = nx.degree_assortativity_coefficient(AGG_REDDIT, weight='weight')
+    assortativity_pos = nx.degree_assortativity_coefficient(POS_REDDIT, weight='weight')
     print(f"Assortativity en NEG_REDDIT: {assortativity_neg}")
     print(f"Assortativity en AGG_REDDIT: {assortativity_agg}")
-
+    print(f"Assortativity en POS_REDDIT: {assortativity_pos}")
+    
     print("\n==========================================")
     print("\tSmall world analysis SECTION")
     print("==========================================\n")
 
-    smallWorld([CONX_REDDIT, CONX_NEG], ["CONX_REDDIT", "CONX_NEG"])
+    smallWorld([CONX_REDDIT, CONX_NEG, CONX_POS], ["CONX_REDDIT", "CONX_NEG", "CONX_POS"])
 
     print("\n==========================================================")
     print("\tBowtie analysis SECTION")
