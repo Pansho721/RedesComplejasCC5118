@@ -17,7 +17,7 @@ def smallWorld(graphs, names):
 
         L_ER = math.log(graph.number_of_nodes()) / math.log(k_avg)
         C_ER = k_avg / graph.number_of_nodes()
-        
+
         L = nx.average_shortest_path_length(graph)
         C = nx.average_clustering(graph)
 
@@ -28,18 +28,7 @@ def smallWorld(graphs, names):
     return
 
 
-def bowtie(NEG_REDDIT, AGG_REDDIT, CONX_REDDIT):
-    # 1. SEPARAR IN-DEGREE Y OUT-DEGREE EN LA RED DE ODIO
-    in_degree_neg = nx.in_degree_centrality(NEG_REDDIT)
-    out_degree_neg = nx.out_degree_centrality(NEG_REDDIT)
-
-    df_odio = pd.DataFrame({
-        'Subreddit': list(NEG_REDDIT.nodes()),
-        'Victimizacion (In-Degree)': list(in_degree_neg.values()),
-        'Toxicidad (Out-Degree)': list(out_degree_neg.values())
-    })
-
-
+def bowtie(AGG_REDDIT, CONX_REDDIT):
     scc_nodes = set(CONX_REDDIT.nodes())
     nodo_referencia = next(iter(scc_nodes))
 
@@ -99,10 +88,10 @@ if __name__ == "__main__":
     assortativity_neg = nx.degree_assortativity_coefficient(NEG_REDDIT, weight='weight')
     assortativity_agg = nx.degree_assortativity_coefficient(AGG_REDDIT, weight='weight')
     assortativity_pos = nx.degree_assortativity_coefficient(POS_REDDIT, weight='weight')
-    print(f"Assortativity en NEG_REDDIT: {assortativity_neg}")
     print(f"Assortativity en AGG_REDDIT: {assortativity_agg}")
+    print(f"Assortativity en NEG_REDDIT: {assortativity_neg}")
     print(f"Assortativity en POS_REDDIT: {assortativity_pos}")
-    
+
     print("\n==========================================")
     print("\tSmall world analysis SECTION")
     print("==========================================\n")
@@ -113,4 +102,4 @@ if __name__ == "__main__":
     print("\tBowtie analysis SECTION")
     print("==========================================================\n")
 
-    bowtie(NEG_REDDIT, AGG_REDDIT, CONX_REDDIT)
+    bowtie(AGG_REDDIT, CONX_REDDIT)
