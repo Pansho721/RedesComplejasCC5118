@@ -2,6 +2,7 @@
 # Standard library used: argparse, csv, sys
 networkx>=2.8
 matplotlib>=3.5
+powerlaw>=1.5
 joblib>=1.5
 pandas>=2.0
 scipy>=1.10

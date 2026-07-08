@@ -25,13 +25,13 @@ def center_analysis(graph, name):
     C = nx.average_clustering(H)
     print(f"[{name}] (3/3) Done")
 
-    return f"[{name}], [{N}], [{E}], [{k}], [{L}], [{C}]"
+    return f"[{name}], [{N}], [{E}], [{k:.6f}], [{L:.6f}], [{C:.6f}]"
 
 
 def analyze_model(model_kind, N, per, pdba, m, m1, m2):
     if model_kind == "AGG":
         graph = load_graph_from_edgelist("graphs/reddit_weighted_aggregated.edgelist", kind='DiGraph')
-        name = "Aggregated Reddit"
+        name = "AGG_REDDIT"
     elif model_kind == "ER":
         graph = nx.erdos_renyi_graph(N, per, directed=True)
         name = "Erdos-Renyi"
@@ -60,23 +60,25 @@ def modelAnalisys(N, per, pdba, m, m1, m2):
             [m1] * 4,
             [m2] * 4,
         )
-        print(f"[Graph], [N], [E], [k], [L], [C]")
-        for row in rows:
-            print(row)
+        rows = list(rows)
+    print(f"[Graph], [N], [E], [k], [L], [C]")
+    for row in rows:
+        print(row)
+    
 
 
 if __name__ == "__main__":
     POS_REDDIT = load_graph_from_edgelist("graphs/reddit_positive.edgelist", kind='DiGraph')
     NEG_REDDIT = load_graph_from_edgelist("graphs/reddit_negative.edgelist", kind='DiGraph')
-    AGG_REDDIT = load_graph_from_edgelist("graphs/reddit_weighted_aggregated.edgelist", kind='DiGraph')
+    CONX_REDDIT = load_graph_from_edgelist("graphs/reddit_weighted_aggregated.edgelist", kind='DiGraph')
       
-    N = AGG_REDDIT.number_of_nodes()
-    E = AGG_REDDIT.number_of_edges()
+    N = CONX_REDDIT.number_of_nodes()
+    E = CONX_REDDIT.number_of_edges()
     per = E / (N * (N - 1))
     m = int(E / N)
-    m1 = NEG_REDDIT.number_of_nodes()
-    m2 = POS_REDDIT.number_of_nodes()
+    m1 = int(NEG_REDDIT.number_of_edges() / NEG_REDDIT.number_of_nodes())
+    m2 = int(POS_REDDIT.number_of_edges() / POS_REDDIT.number_of_nodes())
     pdba = m1 / (m1 + m2)
 
-    print(N, per, pdba, m, m1, m2)
+    print(f"N: {N}, E: {E}, per: {per}, pdba: {pdba}, m: {m}, m1: {m1}, m2: {m2}")
     modelAnalisys(N, per, pdba, m, m1, m2)

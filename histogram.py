@@ -1,11 +1,15 @@
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
+import powerlaw
 import glob
 import os
 
 # ==========================================================================================
 #               Histogram construction
 # ==========================================================================================
+
+LOG = []
 
 GRAPH_LABELS = {
     'negative': 'NEG_REDDIT',
@@ -47,5 +51,28 @@ for filepath in sorted(glob.glob("centrality/*.csv")):
     plt.title(title)
     plt.xlabel(metric)
     plt.ylabel("Frecuencia")
+
+    if metric_key == 'degree':
+        values_array = np.array(values)
+        fit = powerlaw.Fit(values_array, verbose=False)
+        gamma = fit.alpha
+        xmin = fit.xmin
+        
+        LOG.append({"graph": graph_label, "gamma": gamma, "xmin": xmin})
+
+        if np.isfinite(gamma) and np.isfinite(xmin):
+            x_fit = counts.index[counts.index >= xmin].to_numpy(dtype=float)
+            if x_fit.size:
+                observed_tail = (counts.loc[x_fit] / total).to_numpy(dtype=float)
+                y_fit = observed_tail[0] * np.power(x_fit / x_fit[0], -gamma)
+                valid = y_fit >= observed_tail.min()
+
+                if np.count_nonzero(valid) >= 2:
+                    plt.plot(x_fit[valid], y_fit[valid], 'r--', linewidth=2, label=f'Power law (γ={gamma:.2f})')
+                    plt.legend()
+
     plt.savefig(f"{outdir}/{graph_label}-{metric}.png")
     plt.close()
+
+for l in LOG:
+    print(f"[{l['graph']}] gamma: {l['gamma']:.6f}, xmin: {l['xmin']:.6f}")
