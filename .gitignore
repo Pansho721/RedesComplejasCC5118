@@ -229,3 +229,6 @@ img/*
 centrality/*
 centrality_summary/*
 Graficos/*
+
+# Executables
+PartitionGraph

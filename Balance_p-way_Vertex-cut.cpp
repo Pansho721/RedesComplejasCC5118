@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <sys/stat.h>
 
+bool VERBOSE = false;
 
 typedef std::string VertexId;
 
@@ -25,11 +26,6 @@ struct Partition {
         : PtId(id),
           setVertex(vertices), setMaster(master), setEdge(edgesSet) {}
 };
-
-/*      HASH FUNCTION TO SMALL GRAPH 5
-int hashInt(int x) {
-    return x -1;
-}*/
 
 int hashInt(int x) {
     uint32_t v = static_cast<uint32_t>(x);
@@ -57,8 +53,12 @@ void printPartition(Partition p){
 
 int main(int argc, char **argv) {
     if (argc < 3) {
-        fprintf(stderr, "usage: [executable] [input]\n");
+        fprintf(stderr, "usage: [executable] [input] [partitions] [--verbose]\n");
         exit(-1);
+    }
+
+    if (argc >= 4 && std::string(argv[3]) == "--verbose") {
+        VERBOSE = true;
     }
 
     int p = atoi(argv[2]);
@@ -83,7 +83,8 @@ int main(int argc, char **argv) {
         int whichP = master(std::to_string(e),p);
         int msrc = master(src,p);
         int mdst = master(dst,p);
-        std::cout << whichP << ' ' << src << ' ' << dst << '\n';
+        
+        if (VERBOSE) std::cout << whichP << ' ' << src << ' ' << dst << '\n';
 
         Pts[msrc].setMaster.insert(src);
         Pts[mdst].setMaster.insert(dst);
@@ -97,10 +98,11 @@ int main(int argc, char **argv) {
         e++;
     }
 
-    for (int i=0; i<p; i++){
-        printPartition(Pts[i]);
+    if (VERBOSE){
+        for (int i=0; i<p; i++){
+            printPartition(Pts[i]);
+        }
     }
-
 
     
     mkdir("partition", 0755);
