@@ -69,3 +69,8 @@ python3 plot.py
 
 echo "Plotting completed."
 
+echo "================================"
+echo "   Centrality   "
+echo "================================"
+
+python3 centrality.py

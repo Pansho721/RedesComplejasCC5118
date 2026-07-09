@@ -3,8 +3,16 @@ from plot import load_graph_from_edgelist
 import networkx as nx
 import pandas as pd
 import itertools
+import argparse
 import math
 import os
+
+VERBOSE = False
+
+
+def vprint(message):
+    if VERBOSE:
+        print(message)
 
 #   ==========================================================================================
 #           BEGIN NETWORKX COPY PASTE DOCUMENTATION
@@ -83,7 +91,7 @@ def get_some_centrality(graph,kinds=['degree', 'alpha-centrality']):
     """Compute all centrality measures and return as dict of dicts."""
     results = []
     for kind in kinds:
-        print(f"\t\tComputing {kind} centrality...")
+        vprint(f"\t\tComputing {kind} centrality...")
         results.append(compute_centrality(graph, kind))
     return dict(zip(kinds, results))
 
@@ -144,21 +152,27 @@ def stats(input, graph, kinds):
         print(f"\t\t\t{kind}: max={max_value:.6f} ({max_node}), min={min_value:.6f} ({min_node}), avg={avg_value:.6f}")
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--verbose", action="store_true", help="show detailed progress logs")
+    args = parser.parse_args()
+
+    VERBOSE = args.verbose
+
     kinds = {
         'AGG_REDDIT': ['degree', 'pagerank'],
         'CONX_REDDIT': ['degree', 'betweenness', 'closeness', 'alpha-centrality', 'pagerank'],
         'NEG_REDDIT': ['degree', 'in-degree', 'out-degree', 'alpha-centrality', 'pagerank'],
     }
 
-    print("==========================================")
-    print("Loading graph SECTION")
-    print("==========================================")
+    vprint("==========================================")
+    vprint("Loading graph SECTION")
+    vprint("==========================================")
 
-    print("\tLoading negative graph...")
+    vprint("\tLoading negative graph...")
     neg_graph = load_graph_from_edgelist("graphs/reddit_negative.edgelist", kind='DiGraph')
-    print("\tLoading aggregated graph...")
+    vprint("\tLoading aggregated graph...")
     agg_graph = load_graph_from_edgelist("graphs/reddit_weighted_aggregated.edgelist", kind='DiGraph')
-    print("\tLoading largest strongly connected component...")
+    vprint("\tLoading largest strongly connected component...")
     largest = nx.DiGraph(agg_graph.subgraph(max(nx.strongly_connected_components(agg_graph), key=len)))
 
     graphs = {  'NEG_REDDIT': neg_graph,
@@ -166,41 +180,41 @@ if __name__ == "__main__":
                 'CONX_REDDIT': largest}
 
 
-    print("==========================================")
-    print("Centrality Calculating SECTION")
-    print("==========================================")
+    vprint("==========================================")
+    vprint("Centrality Calculating SECTION")
+    vprint("==========================================")
     centralities = {}
     for g,_ in graphs.items():
-        print(f"\tCalculating {g} graph centrality...")
+        vprint(f"\tCalculating {g} graph centrality...")
         kind = kinds[g]
         centralities[g] = get_some_centrality(graphs[g], kind)
     
-    print("==========================================")
-    print("Centrality Saving SECTION")
-    print("==========================================")
+    vprint("==========================================")
+    vprint("Centrality Saving SECTION")
+    vprint("==========================================")
     for g, centrality in centralities.items():
         print(f"\tSaving {g} graph centrality...")
         save_centrality(centrality, f"centrality/reddit_{g}_centrality")
 
-    print("==========================================")
-    print("Joining SECTION")
-    print("==========================================")
+    vprint("==========================================")
+    vprint("Joining SECTION")
+    vprint("==========================================")
     for g, centrality in centralities.items():
-        print(f"\tJoining {g} graph centrality...")
+        vprint(f"\tJoining {g} graph centrality...")
         kind = kinds[g]
         join("centrality_summary/", f"reddit_{g}_centrality", "full_centrality.csv", kind)
     
-    print("==========================================")
-    print("Stadistic SECTION")
-    print("==========================================")
+    vprint("==========================================")
+    vprint("Stadistic SECTION")
+    vprint("==========================================")
     for g, centrality in centralities.items():
-        print(f"\tPrinting {g} graph centrality statistics...")
+        vprint(f"\tGetting {g} graph centrality statistics...")
         kind = kinds[g]
         stats("centrality_summary", f"reddit_{g}_centrality", kind)
 
-    print("==========================================")
-    print("Printing SECTION")
-    print("==========================================")
+    vprint("==========================================")
+    vprint("Printing SECTION")
+    vprint("==========================================")
     for g, centrality in centralities.items():
         print(f"\tPrinting centrality for {g} table")
         kind = kinds[g]
