@@ -3,6 +3,7 @@ import csv
 from importlib import simple
 import sys
 import os
+import argparse
 
 def tsv2file(input, output, sep='\t', head=10, cols=None, count=False):
     os.makedirs(os.path.dirname(output), exist_ok=True) if os.path.dirname(output) else None
@@ -169,16 +170,18 @@ def makeSummary(pos_file="graphs/reddit_positive.edgelist", neg_file="graphs/red
 
 
 if __name__ == "__main__":
-    input_file = "soc-redditHyperlinks-body.tsv"
-    simple_file = "graphs/reddit.edgelist"
-    weight_file = "graphs/reddit_weighted.edgelist"
-    aggregated_file = "graphs/reddit_weighted_aggregated.edgelist"
-    possitive_file = "graphs/reddit_positive.edgelist"
-    negative_file = "graphs/reddit_negative.edgelist"
-    summary_file = "graphs/reddit_summary.txt"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("input_file", nargs="?", default="soc-redditHyperlinks-body.tsv")
+    parser.add_argument("simple_file", nargs="?", default="graphs/reddit.edgelist")
+    parser.add_argument("weight_file", nargs="?", default="graphs/reddit_weighted.edgelist")
+    parser.add_argument("aggregated_file", nargs="?", default="graphs/reddit_weighted_aggregated.edgelist")
+    parser.add_argument("positive_file", nargs="?", default="graphs/reddit_positive.edgelist")
+    parser.add_argument("negative_file", nargs="?", default="graphs/reddit_negative.edgelist")
+    parser.add_argument("summary_file", nargs="?", default="graphs/reddit_summary.txt")
+    args = parser.parse_args()
 
-    directedSimpleGraphFile(input_file, simple_file)
-    directedWeightedGraphFile(input_file, weight_file)
-    map_reduce_count_edges(weight_file, aggregated_file, sep='\t')
-    filterSentiment(aggregated_file, possitive_file, negative_file, sep='\t')
-    makeSummary(possitive_file, negative_file, summary_file, sep='\t')
+    directedSimpleGraphFile(args.input_file, args.simple_file)
+    directedWeightedGraphFile(args.input_file, args.weight_file)
+    map_reduce_count_edges(args.weight_file, args.aggregated_file, sep='\t')
+    filterSentiment(args.aggregated_file, args.positive_file, args.negative_file, sep='\t')
+    makeSummary(args.positive_file, args.negative_file, args.summary_file, sep='\t')
