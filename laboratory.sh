@@ -34,3 +34,5 @@ g++ Balanced_p-way_Vertex-cut.cpp -o PartitionGraph
 
 python3 plot.py
 
+echo "Plotting completed."
+
