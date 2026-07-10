@@ -74,3 +74,15 @@ echo "   Centrality   "
 echo "================================"
 
 python3 centrality.py
+
+echo "Centrality calculations completed."
+
+echo "================================"
+echo "   Histograms   "
+echo "================================"
+
+python3 histograms.py
+
+echo "Histograms generated successfully."
+
+
