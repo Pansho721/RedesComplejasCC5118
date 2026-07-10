@@ -1,9 +1,8 @@
 import os
 import math
-import pandas as pd
 import networkx as nx
-from plot import load_graph_from_edgelist
 import matplotlib.pyplot as plt
+from plot import load_graph_from_edgelist
 
 
 def smallWorld(graphs, names):

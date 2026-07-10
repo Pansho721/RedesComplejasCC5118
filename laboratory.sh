@@ -86,3 +86,23 @@ python3 histograms.py
 echo "Histograms generated successfully."
 
 
+echo "================================"
+echo "   Analysis   "
+echo "================================"
+
+python3 analysis.py
+
+echo "Analysis completed."
+
+
+echo "================================"
+echo "   Analysis over Models   "
+echo "================================"
+
+python3 models.py
+
+echo "Analysis over Models completed."
+
+echo "================================"
+echo "   Laboratory completed successfully   "
+echo "================================"
