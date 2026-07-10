@@ -6,7 +6,7 @@ from plot import load_graph_from_edgelist
 
 
 def smallWorld(graphs, names):
-    print(f"[*Graph*], [*Metric*], [*graph value*], [*ER*],")
+    print(f"[*Grafo*], [*Metrica*], [*valor*], [*valor ER equivalente*],")
     for i in range(len(graphs)):
         graph = graphs[i]
         name = names[i]

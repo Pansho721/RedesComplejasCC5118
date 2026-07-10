@@ -24,6 +24,18 @@ Una vez inicializada el ambiente virtual instalamos las librerias desde el archi
 
 > $pip install -r requirements.txt
 
+Para ejecutar todo el laboratorio de forma secuencial se usa:
+
+> $./laboratory.sh
+
+Al iniciar, `laboratory.sh` realiza una validacion rapida antes de correr los scripts:
+- Verifica que exista el dataset `soc-redditHyperlinks-body.tsv`.
+- Verifica que exista el entorno virtual `venv` y su script de activacion.
+- Verifica que el ejecutable `venv/bin/python3` este disponible.
+- Activa el entorno virtual y luego instala dependencias con `pip install -r requirements.txt`.
+
+Despues de estas comprobaciones, ejecuta en orden: preprocess, plotting/particionado, centralidad, histogramas, analisis de red y analisis de modelos.
+
 ## Aplicaciones
 
 Este proyecto abarca cuatro objetivos principales:
@@ -116,3 +128,21 @@ Se agregó un nuevo script de análisis de redes.
     - `graphs/reddit_weighted_aggregated.edgelist`
     - `graphs/reddit_negative.edgelist`
     - el mayor componente fuertemente conectado de `AGG_REDDIT`.
+
+### Analysis over Models
+
+Se agregó un script de comparación de modelos de red en `models.py`.
+
+#### models.py
+
+- Compara métricas de small-world y propiedades estructurales entre:
+    - grafo real agregado (`AGG_REDDIT`),
+    - Erdős–Rényi,
+    - Barabási–Albert,
+    - Dual Barabási–Albert.
+- Estima parámetros de los modelos sintéticos a partir de los grafos reales (N, E, per, m, m1, m2, pdba).
+- Calcula, para cada modelo, métricas como N, E, k, longitud de camino promedio, clustering, conectividad y assortativity.
+- Ejecuta parte de los cálculos en paralelo con `ProcessPoolExecutor`.
+- Soporta una bandera opcional de consola para ver progreso detallado:
+
+> $python3 models.py --verbose
