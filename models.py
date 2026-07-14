@@ -4,6 +4,8 @@ import networkx as nx
 import argparse
 
 VERBOSE = False
+KINDS = ["AGG", "ER", "BA", "DBA", "HK"]
+
 
 def small_world_analysis(graph, name):
 
@@ -42,7 +44,7 @@ def properties_analysis(graph, name):
 
     return f"[{name}], [{conx}], [{assortativity:.6f}]"
 
-def analyze_model(func, model_kind, N, per, pdba, m, m1, m2):
+def analyze_model(func, model_kind, N, per, pdba, phk, m, m1, m2):
     if model_kind == "AGG":
         graph = load_graph_from_edgelist("graphs/reddit_weighted_aggregated.edgelist", kind='DiGraph')
         name = "AGG_REDDIT"
@@ -55,39 +57,43 @@ def analyze_model(func, model_kind, N, per, pdba, m, m1, m2):
     elif model_kind == "DBA":
         graph = nx.dual_barabasi_albert_graph(N, m1, m2, pdba)
         name = "Dual Barabasi-Albert"
+    elif model_kind == "HK":
+        graph = nx.powerlaw_cluster_graph(N, m, per)
+        name = "Holme-Kim"
     else:
         raise ValueError(f"Unsupported model: {model_kind}")
 
     return func(graph, name)
 
 
-def modelAnalisys(N, per, pdba, m, m1, m2):
-    kinds = ["AGG", "ER", "BA", "DBA"]
+def modelAnalisys(N, per, pdba, phk, m, m1, m2):
     with ProcessPoolExecutor(max_workers=4) as executor:
         rows1 = executor.map(
             analyze_model,
-            [small_world_analysis] * 4,
-            kinds,
-            [N] * 4,
-            [per] * 4,
-            [pdba] * 4,
-            [m] * 4,
-            [m1] * 4,
-            [m2] * 4,
+            [small_world_analysis] * len(KINDS),
+            KINDS,
+            [N] * len(KINDS),
+            [per] * len(KINDS),
+            [pdba] * len(KINDS),
+            [phk] * len(KINDS),
+            [m] * len(KINDS),
+            [m1] * len(KINDS),
+            [m2] * len(KINDS),
         )
         rows1 = list(rows1)
 
     with ProcessPoolExecutor(max_workers=4) as executor:
         rows2 = executor.map(
             analyze_model,
-            [properties_analysis] * 4,
-            kinds,
-            [N] * 4,
-            [per] * 4,
-            [pdba] * 4,
-            [m] * 4,
-            [m1] * 4,
-            [m2] * 4,
+            [properties_analysis] * len(KINDS),
+            KINDS,
+            [N] * len(KINDS),
+            [per] * len(KINDS),
+            [pdba] * len(KINDS),
+            [phk] * len(KINDS),
+            [m] * len(KINDS),
+            [m1] * len(KINDS),
+            [m2] * len(KINDS),
         )
         rows2 = list(rows2)
     print(f"[*Graph*], [*N*], [*E*], [*k*], [*L*], [*C*]")
@@ -107,9 +113,10 @@ def evaluate_models_from(graph, pos, neg):
     m1 = int(neg.number_of_edges() / neg.number_of_nodes())
     m2 = int(pos.number_of_edges() / pos.number_of_nodes())
     pdba = m1 / (m1 + m2)
+    phk = per
 
     print(f"N: {N}, E: {E}, per: {per}, pdba: {pdba}, m: {m}, m1: {m1}, m2: {m2}")
-    modelAnalisys(N, per, pdba, m, m1, m2)
+    modelAnalisys(N, per, pdba, phk, m, m1, m2)
     
 
 
