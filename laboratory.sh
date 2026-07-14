@@ -12,6 +12,8 @@ echo "================================"
 INPUT_FILE="soc-redditHyperlinks-body.tsv"
 if [[ ! -f "$INPUT_FILE" ]]; then
   echo "Error: file not found: $INPUT_FILE"
+    echo "In case you don't have the file, you can download it from the following link: https://snap.stanford.edu/data/soc-RedditHyperlinks.html"
+    echo "Downdload the file 'soc-redditHyperlinks-body.tsv' and place it in the same directory as this script."
   exit 1
 fi
 

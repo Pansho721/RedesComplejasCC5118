@@ -134,4 +134,5 @@ def plot_graph(path="graphs/reddit.edgelist", title="Full graph", size=(80, 80),
     draw_and_save_graph(G, "img/graph.png", title, node_size=1, fig_size=size, dpi=dpi)
 
 if __name__ == "__main__":
-    plot_graph("graphs/reddit_negative.edgelist","Grafo Negativo", size=(10, 10), dpi=100)
+    plot_partitions()
+    plot_graph("graphs/reddit_weighted_aggregated.edgelist","AGG_REDDIT", size=(10, 10), dpi=100)
