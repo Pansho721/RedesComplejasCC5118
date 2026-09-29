@@ -1,5 +1,5 @@
-# Requirements for read.py
-# Standard library used: argparse, csv, sys
+# Requirements for the scr/ pipeline (see setup.sh)
+# Standard library used: argparse, csv, sys, os, math, glob, html, shutil, itertools, collections
 networkx>=2.8
 matplotlib>=3.5
 powerlaw>=1.5

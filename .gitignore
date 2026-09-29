@@ -208,30 +208,14 @@ marimo/_lsp/
 __marimo__/
 
 
-# Dataset files
+# Dataset + generated pipeline output (see setup.sh / scr/main.py)
 *.csv
 *.tsv
-graph_*.png
-graph.edgelist
-partition*.graph
-partition/
-partition/*
-partitionMaster/
-partitionMaster/*
-partitionMirror/
-partitionMirror/*
-
 *.edgelist
 *.png
-
-graphs/*
-img/*
-centrality/*
-centrality_summary/*
-Graficos/*
-
-# Executables
-PartitionGraph
+INPUT/raw/*
+INPUT/edgelist/*
+OUTPUT/
 
 #Claude
 CLAUDE.md

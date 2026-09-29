@@ -1,148 +1,82 @@
 # Descripcion general de Funcionamiento
 
+Analisis de la red de hipervinculos entre subreddits (dataset SNAP "Reddit Hyperlinks") para el curso CC5118 (Redes Complejas): centralidad, distribucion de grado, propiedades de mundo pequeno, asortatividad, macroestructura bow-tie y comparacion contra modelos sinteticos. El resultado final es un reporte HTML donde cada pagina responde una pregunta de analisis, mas una pagina de resumen.
+
+## Estructura del proyecto
+
+```
+INPUT/raw/soc-redditHyperlinks-body.tsv   # dataset original (descargado manualmente)
+INPUT/edgelist/                           # edgelists derivados del TSV (generados)
+
+OUTPUT/raw/centralities/                  # CSV de centralidad por grafo/medida (+ summary/)
+OUTPUT/raw/histograms/                    # PNG de distribucion de grado + ajuste ley de potencia
+OUTPUT/raw/images/                        # figuras principales (top-centralidad, bow-tie)
+OUTPUT/raw/graphics/                      # figuras de comparacion (mundo pequeno, asortatividad, modelos)
+OUTPUT/pages/final/                       # reporte HTML autocontenido (main.html + img/)
+
+setup.sh              # valida el entorno y lanza el pipeline
+scr/main.py            # orquestador: todos los parametros ajustables viven aqui
+scr/preprocess.py       # TSV -> edgelists
+scr/graph_io.py          # carga de edgelists compartida por el resto de etapas
+scr/centrality.py         # medidas de centralidad (tabla lazy de dispatch)
+scr/histogram.py           # histogramas de distribucion de grado + ajuste ley de potencia
+scr/analysis.py             # mundo pequeno, asortatividad, bow-tie
+scr/models.py                 # comparacion contra modelos sinteticos (tabla lazy de dispatch)
+scr/report.py                  # genera el reporte HTML a partir de OUTPUT/raw
+scr/palette.py                   # paleta de colores compartida por los graficos y el HTML
+```
+
 ## Inicio
 
-Para comenzar hay que configurar un ambiente virtual para poder usar las librerias necesarias.
+`setup.sh` deja el entorno listo antes de correr nada: crea/activa el `venv`, instala dependencias, hace un chequeo de compilacion de `scr/`, prueba que cada libreria (`networkx`, `matplotlib`, `pandas`, `numpy`, `scipy`, `powerlaw`) se pueda importar, y valida que `INPUT/raw/soc-redditHyperlinks-body.tsv` tenga las columnas esperadas.
 
-para ello usamos el siguiente comando:
+```bash
+./setup.sh
+```
 
-> $python3 -m venv venv
+Al terminar los chequeos, `setup.sh` ejecuta el pipeline completo (`python3 scr/main.py`). Para solo validar el entorno sin correr el pipeline:
 
-Esto crea un ambiente virtual llamado venv, en linux, una vez creado lo podemos asignar a la terminal con:
+```bash
+./setup.sh --check-only
+```
 
-> $source ./venv/bin/activate
+El dataset `soc-redditHyperlinks-body.tsv` no esta incluido en el repositorio: hay que descargarlo desde https://snap.stanford.edu/data/soc-RedditHyperlinks.html y colocarlo en `INPUT/raw/`.
 
-Esto es para poder instalar las librerias a usar, las cuales son:
+## Ejecutar el pipeline directamente
 
-+ networkx
-+ matplotlib
-+ joblib
-+ pandas
-+ scipy
+```bash
+source venv/bin/activate
+python3 scr/main.py [--verbose] [--only preprocess,centrality,histogram,analysis,models,report]
+```
 
-Una vez inicializada el ambiente virtual instalamos las librerias desde el archivo "requirements.txt".
+Todos los parametros ajustables (rutas, que medidas de centralidad calcular por grafo, overrides de parametros de modelos) viven en el diccionario `CONFIG` al inicio de `scr/main.py` — no hace falta tocar los modulos de `scr/` para cambiarlos.
 
-> $pip install -r requirements.txt
+### Etapas
 
-Para ejecutar todo el laboratorio de forma secuencial se usa:
+1. **Preprocess** (`scr/preprocess.py`): lee el TSV y genera los distintos edgelists en `INPUT/edgelist/`.
 
-> $./laboratory.sh
+| *Nombre* | *Archivo* | *Descripcion* |
+|:---------:|:---------|:----------|
+| _Dataset_ | `INPUT/raw/soc-redditHyperlinks-body.tsv` | Dataset original con todas las etiquetas. |
+| _Edgelist_ | `INPUT/edgelist/reddit.edgelist` | Lista simple de arcos, con repeticiones, solo (Source, Target). |
+| _Weighted_ | `INPUT/edgelist/reddit_weighted.edgelist` | Lista de arcos con peso, con repeticiones, modela el sentimiento con recorrido {-1, 1}. |
+| _Aggregated_ | `INPUT/edgelist/reddit_weighted_aggregated.edgelist` | Arcos iguales sumados y definidos como peso ("AGG_REDDIT"). |
+| _Positive_ | `INPUT/edgelist/reddit_positive.edgelist` | Subconjunto con etiqueta positiva de Aggregated. |
+| _Negative_ | `INPUT/edgelist/reddit_negative.edgelist` | Subconjunto con etiqueta negativa de Aggregated ("NEG_REDDIT"). |
+| _Summary_ | `INPUT/edgelist/reddit_summary.txt` | source, destino, negativos, positivos, total, proporcion de negativos, proporcion de positivos. |
 
-Al iniciar, `laboratory.sh` realiza una validacion rapida antes de correr los scripts:
-- Verifica que exista el dataset `soc-redditHyperlinks-body.tsv`.
-- Verifica que exista el entorno virtual `venv` y su script de activacion.
-- Verifica que el ejecutable `venv/bin/python3` este disponible.
-- Activa el entorno virtual y luego instala dependencias con `pip install -r requirements.txt`.
+2. **Centralidad** (`scr/centrality.py`): calcula, para `AGG_REDDIT`, `CONX_REDDIT` (mayor componente fuertemente conexo de AGG_REDDIT) y `NEG_REDDIT`, las medidas configuradas en `CONFIG["centrality_kinds"]` (degree, in/out-degree, betweenness, closeness, alpha-centrality, pagerank). Las medidas mismas son una tabla lazy `CENTRALITY_FUNCS = [(nombre, fn), ...]`, facil de extender. Guarda un CSV por medida y uno combinado con promedio en `OUTPUT/raw/centralities/`, mas un grafico de barras del top-10 en `OUTPUT/raw/images/`.
 
-Despues de estas comprobaciones, ejecuta en orden: preprocess, plotting/particionado, centralidad, histogramas, analisis de red y analisis de modelos.
+3. **Histogramas** (`scr/histogram.py`): para cada CSV de centralidad, construye un grafico log-log de frecuencia y, para el grado, un ajuste de ley de potencia (paquete `powerlaw`). Salida en `OUTPUT/raw/histograms/`.
 
-## Aplicaciones
+4. **Analysis** (`scr/analysis.py`): small-world (comparando L y C contra un grafo Erdos-Renyi equivalente), asortatividad por grado, y descomposicion bow-tie (SCC, IN, OUT, Tendrils) de AGG_REDDIT. Las tres son una lista lazy `ANALYSES = [(nombre, fn), ...]`. Salida en `OUTPUT/raw/images/` y `OUTPUT/raw/graphics/`.
 
-Este proyecto abarca cuatro objetivos principales:
-- Generar archivos que representan grafos facil de usar desde el dataset soc-redditHyperlinks-body.tsv
-- Graficar los grafos.
-- Calcular medidas de centralidad para cada grafo interezante de analizar.
-- Realizar análisis de redes adicionales como small-world, assortativity y bow-tie.
+5. **Models** (`scr/models.py`): compara AGG_REDDIT/CONX_REDDIT contra Erdos-Renyi, Barabasi-Albert, Dual Barabasi-Albert y Holme-Kim (parametros estimados desde los datos reales). Los modelos son una tabla lazy `MODEL_BUILDERS = [(nombre, build_fn), ...]`. Corre en paralelo con `ProcessPoolExecutor`. Salida en `OUTPUT/raw/graphics/`.
 
+6. **Report** (`scr/report.py`): lee unicamente `OUTPUT/raw/` (CSVs + PNGs ya escritos por las etapas anteriores) y genera el reporte final en `OUTPUT/pages/final/`: una pagina HTML por pregunta (`centrality.html`, `degree_distribution.html`, `small_world.html`, `assortativity.html`, `bowtie.html`, `models.html`) mas un resumen (`main.html`). Todas las imagenes referenciadas se copian a `OUTPUT/pages/final/img/`, asi que esa carpeta se puede mover o comprimir como una unidad autocontenida.
 
-### Preproceso
+## Notas
 
-El preproceso genera distintos listados en texto plano que representan grafos, para ello se lee el archivo tsv y se genera los grafos desde esta lectura, luego se usan estos grafos elementales para generar grafos especificos.
-
-| *Nombre* | *Archivo* | *Tipo* | *Descripcion* |
-|:---------:|:---------|:--------:|:----------|
-| _Dataset_ | soc-redditHyperlinks-body.tsv | Input, verboso | Dataset original con todas las etiquetas. | 
-| _Edgelist_ | graphs/reddit.edgelist | Output, armado desde _Dataset_ | Lista simple de arcos, hay repeticiones del mismo arco, solo tiene (Source, Target) |
-| _Weighted_ | graphs/reddit_weighted.edgelist | Output, armado desde _Dataset_ | Lista de arcos con peso, hay repeticiones del mismo arco, modela el sentimiento con recorrido {-1, 1} |
-| _Aggregated_ | graphs/reddit_weighted_aggregated.edgelist | Output, armado desde _Weighted_ | Lista de arcos en donde se suman los arcos iguales y se definen como peso |
-| _Positive_ | graphs/reddit_positive.edgelist | Output, armado desde _Weighted_ | lista de arcos, es el sub conjunto con etiquetas positiva de Aggregated |
-| _Negative_ | graphs/reddit_negative.edgelist | Output, armado desde _Weighted_ | lista de arcos, es el sub conjunto con etiquetas negativa de Aggregated |
-| _Summary_ | graphs/reddit_summary.txt | Output, armado desde _Positive_ y _Negative_ | Lista de arcos con todos los datos en el siuiente orden: source, destino , negegativos, positivos, total, proporcion de negativos, proporcion de positivos. |
-
-### Graficar
-
-Para graficar hay dos scripts, uno en C++ y otro en python.
-
-#### Balanced_p-way_Vertex-cut.cpp
-
-Este es un script que transforma un grafo de texto plano en una particion del grafo usando el algoritmo de vertex cut, es decir, selecciona una conjunto de vertices de forma equitativa y los define como parte de una de las particiones, a estos nodos se le llama masters, luego inserta todos los arcos que contengan a este nodo, los nodos que no pertenecian a los masters de la particiones se le conocen como mirrors.
-
-    - Dada una lista de arcos simple devuelve una particion del grafo.
-
-En linux usando g++, el uso es el siguiente:
-
-> $g++ Balanced_p-way_Vertex-cut.cpp
-
-> $./a.out *edgelist* *N*
-
-Donde _edgelist_ corresponde a la direccion donde esta la lista de arcos y _N_ el numero de particiones.
-Esto crea los directorios partition, partition Master y partition Mirror, los cuales respectivamente son: Para la lista de arcos, nodos asignados a la particion y nodos duplicados.
-
-#### plot.py
-
-- *load_graph_from_edgelist(path, kind='DiGraph', sep='\t'):*
-    - carga un archivo de aristas en texto plano y lo convierte en un grafo del tipo indicado (DiGraph, Graph, MultiDiGraph, MultiGraph). Soporta arcos con 2, 3 o 4 columnas asignando pesos segun corresponda.
-- *load_node_set(path):*
-    - lee un archivo con un nodo por linea y devuelve un conjunto de nodos.
-- *write_partition_graphs(num_partitions=8, file_prefix='partition/'):*
-    - carga los grafos de cada particion y adjunta sus nodos master y mirror desde carpetas separadas.
-- *draw_and_save_graph(G, out_path, title, node_size=8, fig_size=(20, 20), dpi=50):*
-    - dibuja el grafo, colorea nodos por tipo (master/mirror) y guarda la imagen.
-- *plot_partitions():*
-    - recorre las particiones, genera una imagen para cada una y la guarda como graph_i.png.
-- *plot_graph(path='graphs/reddit.edgelist', title='Full graph', size=(80, 80), dpi=30, sep='\t'):*
-    - carga el grafo desde el archivo indicado y guarda su visualizacion general en img/graph.png.
-
-### Centralidad
-
-Para esta seccion el proyecto cuenta con un script que calcula la centralidad de distintos grafos
-
-#### centrality.py
-
-- *compute_centrality(graph, kind='degree'):*
-    - calcula la medida de centralidad indicada para el grafo dado. Soporta los tipos: degree, in-degree, out-degree, betweenness, closeness, alpha-centrality y pagerank.
-- *get_some_centrality(graph, kinds=['degree', 'betweenness', 'alpha-centrality']):*
-    - calcula todas las medidas de centralidad indicadas y retorna un diccionario con los resultados.
-- *save_centrality(dict, output_name):*
-    - guarda cada medida de centralidad en un archivo CSV separado con el formato {output_name}_{kind}.csv, ordenado de mayor a menor.
-- *join(output, prefix, sufix, kinds):*
-    - une los archivos CSV de cada medida de centralidad en un solo archivo, agregando una columna de promedio entre todas las medidas.
-- *print_typst_table(path, kinds):*
-    - lee el archivo CSV de centralidad completo e imprime los 10 nodos con mayor promedio en formato de tabla typst.
-- *stats(input, graph, kinds):*
-    - imprime estadísticas básicas (máximo, mínimo y promedio) para cada medida de centralidad en un archivo centralizado.
-
-Ademas en esta seccion hay un segmento de codigo para calcular la medidad de centralidad betweenness en paralelo, esta fue sacada de la documentacion oficial de NetworkX.
-
-### Analysis
-
-Se agregó un nuevo script de análisis de redes.
-
-#### analysis.py
-
-- Realiza small-world analysis comparando la longitud caracteristica y el coeficiente de clustering con un grafo de Erdős–Rényi.
-- Calcula assortativity para el grafo negativo.
-- Descompone el grafo agregado en Bow-tie: SCC, IN, OUT y Tendrils.
-- Genera una visualización de la estructura Bow-tie en `img/bowtie_reddit.png`.
-- Utiliza los grafos:
-    - `graphs/reddit_weighted_aggregated.edgelist`
-    - `graphs/reddit_negative.edgelist`
-    - el mayor componente fuertemente conectado de `AGG_REDDIT`.
-
-### Analysis over Models
-
-Se agregó un script de comparación de modelos de red en `models.py`.
-
-#### models.py
-
-- Compara métricas de small-world y propiedades estructurales entre:
-    - grafo real agregado (`AGG_REDDIT`),
-    - Erdős–Rényi,
-    - Barabási–Albert,
-    - Dual Barabási–Albert.
-- Estima parámetros de los modelos sintéticos a partir de los grafos reales (N, E, per, m, m1, m2, pdba).
-- Calcula, para cada modelo, métricas como N, E, k, longitud de camino promedio, clustering, conectividad y assortativity.
-- Ejecuta parte de los cálculos en paralelo con `ProcessPoolExecutor`.
-- Soporta una bandera opcional de consola para ver progreso detallado:
-
-> $python3 models.py --verbose
+- `CONX_REDDIT` no se guarda como archivo: se deriva en cada etapa que lo necesita a partir de `AGG_REDDIT` (`nx.strongly_connected_components`).
+- Varios modulos imprimen tablas en formato [Typst](https://typst.app) (`[*node*], [valor],`) ademas de guardar los datos — es intencional, para pegar directo en el informe del curso, no un error de formato.
+- Betweenness centrality y la comparacion de modelos corren en paralelo (`multiprocessing`/`ProcessPoolExecutor`) sobre `CONX_REDDIT` (~11 mil nodos): en equipos con poca RAM esto puede ser el cuello de botella del pipeline.
