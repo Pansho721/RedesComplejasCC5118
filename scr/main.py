@@ -6,7 +6,7 @@ CONFIG below, and every stage is one line in the lazy STAGES list.
 Usage:
     python3 scr/main.py [--verbose] [--only stage1,stage2,...]
 
-Stages: preprocess, centrality, histogram, analysis, models, report
+Stages: preprocess, centrality, histogram, analysis, models, report, publish
 """
 import argparse
 import os
@@ -38,6 +38,8 @@ CONFIG = {
         "edgelist_dir": os.path.join(REPO_ROOT, "INPUT", "edgelist"),
         "output_raw": os.path.join(REPO_ROOT, "OUTPUT", "raw"),
         "output_pages": os.path.join(REPO_ROOT, "OUTPUT", "pages", "final"),
+        # Tracked copy of the finished report, browsable from GitHub.
+        "results_html": os.path.join(REPO_ROOT, "Results", "html"),
     },
     # Which centrality measures to compute for each named graph. Trimming
     # this list is the main lever for runtime: betweenness/closeness on
@@ -64,6 +66,7 @@ STAGES = [
     ("analysis", analysis_stage.run),
     ("models", models_stage.run),
     ("report", report_stage.run),
+    ("publish", report_stage.publish),
 ]
 
 

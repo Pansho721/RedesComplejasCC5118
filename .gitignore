@@ -216,6 +216,8 @@ __marimo__/
 INPUT/raw/*
 INPUT/edgelist/*
 OUTPUT/
+# Published report (see the `publish` stage) is tracked, images included
+!Results/html/img/*.png
 
 #Claude
 CLAUDE.md

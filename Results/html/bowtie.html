@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>¿Cuál es la macroestructura (bow-tie) de la red? · CC5118 Redes Complejas</title>
+<style>
+:root {
+  color-scheme: light;
+  --surface: #fcfcfb;
+  --page: #f9f9f7;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --accent: #2a78d6;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --surface: #1a1a19;
+    --page: #0d0d0d;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255,255,255,0.10);
+    --accent: #3987e5;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+}
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+header.top {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+}
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 10px 0;
+}
+nav a {
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+nav a:hover { background: var(--grid); color: var(--ink); }
+nav a.active { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+main {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+}
+h1 { font-size: 26px; margin: 4px 0 6px; }
+h2 { font-size: 18px; margin: 36px 0 12px; }
+p.lede {
+  color: var(--ink-2);
+  font-size: 14px;
+  margin: 0 0 20px;
+}
+.answer {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: 0 0 28px;
+  font-size: 14.5px;
+}
+.answer strong { color: var(--ink); }
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 0 0 8px;
+}
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.tile .label {
+  color: var(--muted);
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.tile .value {
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 4px;
+  font-variant-numeric: proportional-nums;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+  margin: 8px 0 8px;
+}
+a.card {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  text-decoration: none;
+  color: var(--ink);
+}
+a.card:hover { border-color: var(--accent); }
+a.card .q { font-weight: 700; font-size: 14.5px; }
+a.card .a { color: var(--ink-2); font-size: 13px; margin-top: 6px; }
+.chart-card {
+  background: #fcfcfb;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  margin: 6px 0 22px;
+}
+.chart-card figcaption {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin-top: 8px;
+  text-align: center;
+}
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+.table-wrap { overflow-x: auto; margin: 0 0 24px; }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13.5px;
+}
+th, td {
+  text-align: left;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--grid);
+  white-space: nowrap;
+}
+th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.03em; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+footer {
+  max-width: 1040px;
+  margin: 20px auto 0;
+  padding: 16px 20px 40px;
+  color: var(--muted);
+  font-size: 12px;
+}
+</style>
+</head>
+<body>
+<header class="top"><nav><a href="main.html" class="">Resumen</a><a href="centrality.html" class="">Centralidad</a><a href="degree_distribution.html" class="">Distribución de grado</a><a href="small_world.html" class="">Mundo pequeño</a><a href="assortativity.html" class="">Asortatividad</a><a href="bowtie.html" class="active">Bow-tie</a><a href="models.html" class="">Modelos sintéticos</a></nav></header>
+<main>
+<h1>¿Cuál es la macroestructura (bow-tie) de la red?</h1>
+<div class="answer">El núcleo fuertemente conexo (SCC) reúne el <strong>32.3%</strong> de los 35776 subreddits (11564 nodos); IN aporta 14412, OUT 7263 y los tendrils 2537.</div>
+<figure class="chart-card"><img src="img/bowtie_reddit.png" alt="Descomposición bow-tie de AGG_REDDIT"><figcaption>Descomposición bow-tie de AGG_REDDIT</figcaption></figure><div class="table-wrap"><table><thead><tr><th class="">component</th><th class="num">count</th></tr></thead><tbody><tr><td>total</td><td class="num">35776.0000</td></tr><tr><td>scc</td><td class="num">11564.0000</td></tr><tr><td>in_component</td><td class="num">14412.0000</td></tr><tr><td>out_component</td><td class="num">7263.0000</td></tr><tr><td>tendrils</td><td class="num">2537.0000</td></tr></tbody></table></div>
+</main>
+<footer>CC5118 · Redes Complejas · Reddit Hyperlinks — generado el 2026-09-29 16:34</footer>
+</body>
+</html>

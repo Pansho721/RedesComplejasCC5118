@@ -2,6 +2,14 @@
 
 Analisis de la red de hipervinculos entre subreddits (dataset SNAP "Reddit Hyperlinks") para el curso CC5118 (Redes Complejas): centralidad, distribucion de grado, propiedades de mundo pequeno, asortatividad, macroestructura bow-tie y comparacion contra modelos sinteticos. El resultado final es un reporte HTML donde cada pagina responde una pregunta de analisis, mas una pagina de resumen.
 
+## Resultados
+
+El reporte final esta versionado en [`Results/html/`](Results/html/): siete paginas HTML autocontenidas (`main.html` es el resumen y punto de entrada; `index.html` redirige a el) con todas sus imagenes en `Results/html/img/`. No dependen de recursos externos ni de los datos crudos.
+
+Para verlo, clona el repositorio y abre `Results/html/main.html` en un navegador. GitHub muestra el codigo fuente de los `.html` en vez de renderizarlos; para verlos en linea hay que publicar la carpeta con GitHub Pages.
+
+`Results/html/` se regenera con la etapa `publish` del pipeline (ver abajo), que reemplaza la carpeta completa con el contenido de `OUTPUT/pages/final/`. Para actualizar los resultados del repositorio hay que correr el pipeline completo (o `--only report,publish` si `OUTPUT/raw/` ya esta al dia) y commitear `Results/`.
+
 ## Estructura del proyecto
 
 ```
@@ -13,6 +21,7 @@ OUTPUT/raw/histograms/                    # PNG de distribucion de grado + ajust
 OUTPUT/raw/images/                        # figuras principales (top-centralidad, bow-tie)
 OUTPUT/raw/graphics/                      # figuras de comparacion (mundo pequeno, asortatividad, modelos)
 OUTPUT/pages/final/                       # reporte HTML autocontenido (main.html + img/)
+Results/html/                             # copia versionada del reporte (etapa publish)
 
 setup.sh              # valida el entorno y lanza el pipeline
 scr/main.py            # orquestador: todos los parametros ajustables viven aqui
@@ -46,7 +55,7 @@ El dataset `soc-redditHyperlinks-body.tsv` no esta incluido en el repositorio: h
 
 ```bash
 source venv/bin/activate
-python3 scr/main.py [--verbose] [--only preprocess,centrality,histogram,analysis,models,report]
+python3 scr/main.py [--verbose] [--only preprocess,centrality,histogram,analysis,models,report,publish]
 ```
 
 Todos los parametros ajustables (rutas, que medidas de centralidad calcular por grafo, overrides de parametros de modelos) viven en el diccionario `CONFIG` al inicio de `scr/main.py` — no hace falta tocar los modulos de `scr/` para cambiarlos.
@@ -74,6 +83,8 @@ Todos los parametros ajustables (rutas, que medidas de centralidad calcular por 
 5. **Models** (`scr/models.py`): compara AGG_REDDIT/CONX_REDDIT contra Erdos-Renyi, Barabasi-Albert, Dual Barabasi-Albert y Holme-Kim (parametros estimados desde los datos reales). Los modelos son una tabla lazy `MODEL_BUILDERS = [(nombre, build_fn), ...]`. Corre en paralelo con `ProcessPoolExecutor`. Salida en `OUTPUT/raw/graphics/`.
 
 6. **Report** (`scr/report.py`): lee unicamente `OUTPUT/raw/` (CSVs + PNGs ya escritos por las etapas anteriores) y genera el reporte final en `OUTPUT/pages/final/`: una pagina HTML por pregunta (`centrality.html`, `degree_distribution.html`, `small_world.html`, `assortativity.html`, `bowtie.html`, `models.html`) mas un resumen (`main.html`). Todas las imagenes referenciadas se copian a `OUTPUT/pages/final/img/`, asi que esa carpeta se puede mover o comprimir como una unidad autocontenida.
+
+7. **Publish** (`report.publish` en `scr/report.py`): copia `OUTPUT/pages/final/` a `Results/html/` (ruta configurable en `CONFIG["paths"]["results_html"]`), reemplazando la carpeta anterior para no dejar imagenes viejas, y agrega un `index.html` que redirige a `main.html`. `OUTPUT/` esta en `.gitignore`; `Results/html/` (incluidos sus PNG) si se versiona.
 
 ## Notas
 

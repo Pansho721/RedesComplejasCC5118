@@ -578,3 +578,28 @@ def run(config):
         print(f"\t{key}: {path}")
 
     return written
+
+
+def publish(config):
+    """Stage `publish`: copy the finished report from output_pages (ignored
+    by git) to results_html (Results/html/, tracked) so it can be browsed
+    from the GitHub repository. The target is replaced wholesale so images
+    from older runs don't linger; an index.html redirect to main.html is
+    added so a static host (e.g. GitHub Pages) serves the summary at the
+    folder root."""
+    paths = config["paths"]
+    src = paths["output_pages"]
+    dst = paths["results_html"]
+    if not os.path.isfile(os.path.join(src, "main.html")):
+        raise FileNotFoundError(f"No report found at {src} - run the `report` stage first.")
+
+    if os.path.isdir(dst):
+        shutil.rmtree(dst)
+    shutil.copytree(src, dst)
+    with open(os.path.join(dst, "index.html"), "w", encoding="utf-8") as f:
+        f.write('<!doctype html>\n<meta charset="utf-8">\n'
+                '<meta http-equiv="refresh" content="0; url=main.html">\n'
+                '<a href="main.html">Ir al reporte</a>\n')
+
+    print(f"Report published to: {dst}")
+    return dst
